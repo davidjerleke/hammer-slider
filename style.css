@@ -35,9 +35,11 @@ body {
 }
 
 	.c-slider__container {
-		 list-style: none;
-		 white-space: nowrap;
-		 font-size: 0;
+		will-change: transform;
+		transform: translateZ(0);
+		list-style: none;
+		white-space: nowrap;
+		font-size: 0;
 	}
 
 	.c-slider__slide {
