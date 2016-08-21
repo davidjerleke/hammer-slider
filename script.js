@@ -16,14 +16,15 @@ function HammerSlider(_this, options) {
 		slideInstances,
 		sliderWidth,
 		nrOfSlides,
-		resizing;
+		prefixedTransform;
 
 	
 	var o = {
 		slideShow: false,
 		slideInterval: false,
-		stopAfterInteraction: false,
+		slideSpeed: 300,
 		startSlide: 0,
+		stopAfterInteraction: false,
 		rewind: false,
 		dots: false,
 		slideSelector: undefined,
@@ -44,12 +45,32 @@ function HammerSlider(_this, options) {
 
 
 
-	function _(el, sel, all) {
-		if (all) {
-			return el.querySelectorAll(sel);
+	function _(element, selector, selectAll) {
+		if (selectAll) {
+			return element.querySelectorAll(selector);
 		} else {
-			return el.querySelector(sel);
+			return element.querySelector(selector);
 		}
+	}
+
+
+
+	function prefixThis(prop) {
+		var prefixes = ['', '-webkit-', '-moz-', '-ms-', '-o-'],
+            block = document.createElement('div');
+
+        for (var i in prefixes) {
+            if (typeof block.style[prefixes[i] + prop] !== 'undefined') {
+            	return prefixes[i] + prop;
+            }
+        }
+	}
+
+
+
+	function transform(value, unit) {
+		var u = (unit) ? unit : 'px';
+		slideContainer.style[prefixedTransform] = 'translateX(' + value + u + ') translateZ(0)';
 	}
 
 
@@ -58,13 +79,6 @@ function HammerSlider(_this, options) {
 		for (var i = 0; i < nrOfSlides; i++) {
 			callback.call(null, i);
 		}
-	}
-
-
-
-	function transform(value, unit) {
-		var u = (unit) ? unit : 'px';
-		slideContainer.style.transform = 'translateX(' + value + u + ') translateZ(0)';
 	}
 
 
@@ -89,12 +103,7 @@ function HammerSlider(_this, options) {
 
 
 	function getCurrentPosition() {
-		var style = window.getComputedStyle(slideContainer, null),
-			transform =	style.getPropertyValue('-webkit-transform') ||
-				style.getPropertyValue('-moz-transform') ||
-				style.getPropertyValue('-ms-transform') ||
-				style.getPropertyValue('transform'),
-
+		var transform = window.getComputedStyle(slideContainer, null).getPropertyValue(prefixedTransform),
 			matrixIndex = (transform.match('3d')) ? 12 : 4;	// 12 is for IE and 4 for other browsers
 
 		return parseInt(transform.split(',')[matrixIndex]);
@@ -115,8 +124,8 @@ function HammerSlider(_this, options) {
 	function setPosition(nextSlide) {
 		var next = nextSlide;
 
-		clearTimeout(slider.autoTimeOut); 
-		clearTimeout(slider.slideTimeOut);
+		clearTimeout(slider.autoTimeOut);
+		window.cancelAnimationFrame(slider.slideTimeOut);
 		
 		if (!o.rewind) {
 			if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
@@ -138,22 +147,31 @@ function HammerSlider(_this, options) {
 			direction = (nextSlide < slideIndex) ? -1 : 1;
 		
 		slideIndex = next;
-		resizing = false;
 
 		if (o.dots) {
 			setActiveDot(slideIndex % nrOfSlides);
 		}
-
 		slide(slideDistance, direction);
 	}
 
 
 
+	Math.easeOutQuad = function (currTime, start, change, duration) {
+		currTime /= duration;
+		currTime--;
+		return change * (currTime * currTime * currTime + 1) + start;
+	};
+
+
+
 	function slide(slideDistance, direction) {
-		(function animate() {
-			var currentPosition = getCurrentPosition();
-		
-			if (currentPosition === slideDistance) {
+		var currentTime = 0,
+			start = getCurrentPosition(),
+			change = slideDistance - start,
+			increment = 20;
+
+		function animate() {
+			if (currentTime === o.slideSpeed) {
 				if (o.slideShow && !o.stopAfterInteraction) {
 					autoSlide();
 				}
@@ -161,22 +179,15 @@ function HammerSlider(_this, options) {
 					clearClones();
 				}
 			} else {
-				var newPosition,
-					pause = 10;
+				currentTime += increment;
 
-				if (resizing) {
-					newPosition = getResetPosition(sliderWidth);
-					pause = o.slideInterval * 2;
-				} else {
-					newPosition = currentPosition - Math.ceil(Math.abs(slideDistance - currentPosition) * 0.1) * direction;
-				}
+				var val = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
+				transform(val);
 
-				window.requestAnimationFrame(function() {
-					transform(newPosition);
-				});
-				slider.slideTimeOut = setTimeout(animate, pause);
+				slider.slideTimeOut = window.requestAnimationFrame(animate);
 			}
-		}());
+		}
+		animate();
 	}
 
 
@@ -238,10 +249,14 @@ function HammerSlider(_this, options) {
 
 	function onWidthChange() {
 		var moveTo = getResetPosition(100);
-		resizing = true;
+		window.cancelAnimationFrame(slider.slideTimeOut);
+		clearTimeout(slider.autoTimeOut);
 		sliderWidth = _this.offsetWidth;
-
 		transform(moveTo, '%');
+
+		if (o.slideShow && !o.stopAfterInteraction) {
+			autoSlide();
+		}
 	}
 
 
@@ -263,7 +278,7 @@ function HammerSlider(_this, options) {
 		nrOfSlides = slider.slides.length;
 		slideIndex = o.startSlide;
 		sliderWidth = _this.offsetWidth;
-		resizing = false;
+		prefixedTransform = prefixThis('transform');
 
 		loopSlides(function(i) {
             if (o.dots) {
