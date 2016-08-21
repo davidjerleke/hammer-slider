@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<title>
+			HammerSlider by David
+		</title>
+	</head>
+	<body>
+		<div id="wrapper">
+			<div id="container" class="clearfix">
+				<div class="c-slider-wrap clearfix">
+					<div class="c-slider" id="slider">
+						<ul class="c-slider__container">
+							<li class="c-slider__slide" style="background-image: url('img/1.jpg');">
+								<div class="c-slider__overlay">
+									<div class="o-flag u-fill-height">
+										<div class="o-flag__body">
+											<h1>
+												Slide
+											</h1>
+										</div>
+									</div>
+								</div>
+							</li>
+							<li class="c-slider__slide" style="background-image: url('img/2.jpg');">
+								<div class="c-slider__overlay">
+									<div class="o-flag u-fill-height">
+										<div class="o-flag__body">
+											<h1>
+												Slide
+											</h1>
+										</div>
+									</div>
+								</div>
+							</li>
+							<li class="c-slider__slide" style="background-image: url('img/3.jpg');">
+								<div class="c-slider__overlay">
+									<div class="o-flag u-fill-height">
+										<div class="o-flag__body">
+											<h1>
+												Slide
+											</h1>
+										</div>
+									</div>
+								</div>
+							</li>
+						</ul>
+						<ul class="c-slider__dots">
+							<li class="c-slider__dot"></li>
+							<li class="c-slider__dot"></li>
+							<li class="c-slider__dot"></li>
+						</ul>
+					</div>
+					<div class="c-slider__btn c-slider__btn--left" id="slideleft"></div>
+					<div class="c-slider__btn c-slider__btn--right" id="slideright"></div>
+				</div>
+
+			</div>
+		</div>
+		<script type="text/javascript" src="script.js"></script>
+		<script type="text/javascript">
+
+		(function() {
+
+			var slideshow = HammerSlider(document.getElementById('slider'), {
+				slideShow: true,
+				slideInterval: 2000,
+				stopAfterInteraction: false,
+				dotActiveClass: 'is-active',
+				containerSelector: '.c-slider__container',
+				slideSelector: '.c-slider__slide',
+				dotWrapSelector: '.c-slider__dots',
+				startSlide: 0,
+				dots: true,
+				rewind: false
+			});
+
+			document.getElementById('slideright').addEventListener('click', slideshow.next, false);
+			document.getElementById('slideleft').addEventListener('click', slideshow.prev, false);
+
+		})();
+		</script>
+	</body>
+</html>
