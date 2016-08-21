@@ -56,16 +56,18 @@
 			<div class="c-slider__btn c-slider__btn--left" id="slideleft"></div>
 			<div class="c-slider__btn c-slider__btn--right" id="slideright"></div>
 		</div>
-
-		<script type="text/javascript" src="script.js"></script>
+		
+		<!--<script type="text/javascript" src="swipe.js"></script>-->
+		<script type="text/javascript" src="hammer-slider.js"></script>
 		<script type="text/javascript">
 
 		(function() {
 
-			var slideshow = HammerSlider(document.getElementById('slider'), {
+			var sliderElement = document.getElementById('slider'),
+				slider = HammerSlider(sliderElement, {
 				slideShow: true,
 				slideInterval: 2000,
-				slideSpeed: 500,
+				slideSpeed: 700,
 				stopAfterInteraction: false,
 				dotActiveClass: 'is-active',
 				containerSelector: '.c-slider__container',
@@ -73,11 +75,12 @@
 				dotWrapSelector: '.c-slider__dots',
 				startSlide: 0,
 				dots: true,
-				rewind: false
+				rewind: false,
+				mouseDrag: true
 			});
 
-			document.getElementById('slideright').addEventListener('click', slideshow.next, false);
-			document.getElementById('slideleft').addEventListener('click', slideshow.prev, false);
+			document.getElementById('slideright').addEventListener('click', slider.next, false);
+			document.getElementById('slideleft').addEventListener('click', slider.prev, false);
 
 		})();
 		</script>

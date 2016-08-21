@@ -30,7 +30,8 @@ function HammerSlider(_this, options) {
 		slideSelector: undefined,
 		containerSelector: undefined,
 		dotWrapSelector: undefined,
-		dotActiveClass: undefined
+		dotActiveClass: undefined,
+		mouseDrag: false
 	};
 
 
@@ -55,6 +56,12 @@ function HammerSlider(_this, options) {
 
 
 
+	function addEvent(el, event, func) {
+		el.addEventListener(event, func, false);
+    }
+
+
+
 	function prefixThis(prop) {
 		var prefixes = ['', '-webkit-', '-moz-', '-ms-', '-o-'],
             block = document.createElement('div');
@@ -64,6 +71,7 @@ function HammerSlider(_this, options) {
             	return prefixes[i] + prop;
             }
         }
+        return false;
 	}
 
 
@@ -124,8 +132,7 @@ function HammerSlider(_this, options) {
 	function setPosition(nextSlide) {
 		var next = nextSlide;
 
-		clearTimeout(slider.autoTimeOut);
-		window.cancelAnimationFrame(slider.slideTimeOut);
+		stop();
 		
 		if (!o.rewind) {
 			if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
@@ -180,11 +187,10 @@ function HammerSlider(_this, options) {
 				}
 			} else {
 				currentTime += increment;
-
 				var val = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
 				transform(val);
 
-				slider.slideTimeOut = window.requestAnimationFrame(animate);
+				slider.animationFrame = window.requestAnimationFrame(animate);
 			}
 		}
 		animate();
@@ -194,6 +200,13 @@ function HammerSlider(_this, options) {
 
 	function autoSlide() {
 		slider.autoTimeOut = setTimeout(next, o.slideInterval);
+	}
+
+
+
+	function stop() {
+		window.cancelAnimationFrame(slider.animationFrame);
+		clearTimeout(slider.autoTimeOut);
 	}
 
 
@@ -249,9 +262,8 @@ function HammerSlider(_this, options) {
 
 	function onWidthChange() {
 		var moveTo = getResetPosition(100);
-		window.cancelAnimationFrame(slider.slideTimeOut);
-		clearTimeout(slider.autoTimeOut);
 		sliderWidth = _this.offsetWidth;
+		stop();
 		transform(moveTo, '%');
 
 		if (o.slideShow && !o.stopAfterInteraction) {
@@ -261,9 +273,102 @@ function HammerSlider(_this, options) {
 
 
 
-	function addEvent(el, event, func) {
-		el.addEventListener(event, func, false);
-    }
+	function touchEvents(el, callback) {
+
+		function isMouse(e) {
+			try {
+	    		e.changedTouches[0];
+	    	} catch (e) {
+	    		return true;
+	    	}
+	    	return false;
+		}
+
+		var touchsurface = el,
+		    dir,
+		    swipeType,
+		    startX,
+		    startY,
+		    distX,
+		    distY,
+		    threshold = 100, 	// Minimum distance to be considered a swipe
+		    restraint = 100, 	// Maximum distance allowed at the same time in perpendicular direction
+		    allowedTime = 300, 	// Maximum time allowed to travel that distance
+		    elapsedTime,
+		    startTime,
+		    mouseDown = false,
+		    handletouch = callback || function(evt, dir, phase, swipetype, distance) {};
+
+	    function touchStart(e) {
+	        var touchobj = isMouse(e) ? e : e.changedTouches[0],
+	            dist = 0;
+
+	        dir = 'none';
+	        swipeType = 'none';
+	        startX = touchobj.pageX;
+	        startY = touchobj.pageY;
+	        startTime = new Date().getTime();
+	        handletouch(e, 'none', 'start', 0, swipeType);
+
+	        if (isMouse(e)) {
+	        	mouseDown = true;
+	        }
+	    }
+
+	    function touchMove(e) {
+	        e.preventDefault();
+
+	        if (isMouse(e) && !mouseDown) {	// Prevent mousemove from firing before mousedown event is triggered
+	        	return;
+	        }
+	        
+	        var touchobj = isMouse(e) ? e : e.changedTouches[0],
+	            axis;
+	            distX = touchobj.pageX - startX;
+	            distY = touchobj.pageY - startY;    
+
+	        if (Math.abs(distX) > Math.abs(distY)) {
+	            dir = (distX < 0) ? 'left' : 'right';
+	            axis = distX;
+	        }
+	        else {
+	            dir = (distY < 0) ? 'up' : 'down';
+	            axis = distY;
+	        }
+			handletouch(e, dir, 'move', axis, swipeType);
+	    }
+
+	    function touchEnd(e) {
+	        e.preventDefault();
+
+	        var touchobj = isMouse(e) ? e : e.changedTouches[0];
+	            elapsedTime = new Date().getTime() - startTime;
+	      
+	        if (elapsedTime <= allowedTime) {
+	            if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+	                swipeType = dir;
+	            }
+	            else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
+	                swipeType = dir;
+	            }
+	        }
+	        handletouch(e, dir, 'end', (dir =='left' || dir =='right') ? distX : distY, swipeType);
+
+	        if (isMouse(e)) {
+	        	mouseDown = false;
+	        }
+	    }
+
+	    addEvent(_this, 'touchstart', touchStart);
+    	addEvent(_this, 'touchmove', touchMove);
+    	addEvent(_this, 'touchend', touchEnd);
+
+    	if (o.mouseDrag) {
+	    	addEvent(_this, 'mousedown', touchStart);
+	    	addEvent(_this, 'mousemove', touchMove);
+	    	addEvent(_this, 'mouseup', touchEnd);
+    	}
+	}
 
 
 
@@ -305,14 +410,54 @@ function HammerSlider(_this, options) {
 	}
 
 
-	
+
 	setup();
 
+	var startPos,
+		currentPos,
+		currentSlide;
+	
+    touchEvents(slideContainer, function(e, dir, phase, distance) {
+    	var newPos,
+    		direction;
+
+    	if (phase === 'start') {
+    		stop();
+			startPos = getCurrentPosition();
+			currentSlide = slideIndex % nrOfSlides;
+    	} else if (phase === 'move') {
+    		if (dir === 'left' || dir === 'right') {
+				if (dir === 'left' && currentSlide === nrOfSlides - 1 && Math.abs(distance) > 100) {
+	    			return;
+	    		} else if (currentSlide === 0 && distance > 100) {
+	    			return;
+	    		}
+	    		newPos = startPos + distance;
+	    		transform(newPos);
+    		}
+    	} else if (phase === 'end') {
+    		if (dir === 'left') {
+    			if (currentSlide !== nrOfSlides - 1 && Math.abs(distance) > 30) {
+    				next();
+    				return;
+    			}
+    		} else if (dir === 'right') {
+    			if (currentSlide === 0 || distance < 30) {
+    				direction = 1;
+    			} else {
+    				prev();
+    				return;
+    			}
+    		}
+			slide(getResetPosition(sliderWidth), (direction) ? 1 : -1);
+    	}
+	});
 
 
 	return {
 		next: next,
 		prev: prev,
+		stop: stop,
 		resize: onWidthChange
 	};
 }
