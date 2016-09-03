@@ -1,3 +1,9 @@
+* {
+	-moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
 body,
 ul {
 	margin: 0; 
@@ -28,21 +34,57 @@ body {
 	position: relative;
 }
 
+.c-slider,
+.c-slider__container,
+.c-slider__slide,
+.c-slider__dots {
+	-webkit-transform: translate3d(0,0,0);
+    -ms-transform: translate3d(0,0,0);
+    -moz-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+	-webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
+    -ms-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+
 .c-slider {
 	position: relative; 
 	overflow: hidden; 
 	width: 100%;
 }
 
+
 	.c-slider__container {
 		will-change: transform;
-		transform: translateZ(0);
 		list-style: none;
 		white-space: nowrap;
 		font-size: 0;
+		-ms-touch-action: pan-y;
+    	touch-action: pan-y;
+	}
+
+	.c-slider__container.mouse-drag-enabled .c-slider__slide {
+		-webkit-user-select: none;
+    	-moz-user-select: none;
+    	-ms-user-select: none;
+	    cursor: move;
+	    cursor: -webkit-grab;
+	    cursor: -moz-grab;
+	    cursor: grab;
+	}
+
+	.c-slider__container.is-dragging .c-slider__slide * {
+	    cursor: move;
+	    cursor: -webkit-grabbing;
+	    cursor: -moz-grabbing;
+	    cursor: grabbing;
 	}
 
 	.c-slider__slide {
+	    -webkit-tap-highlight-color: transparent;
+    	tap-highlight-color: transparent;
 		position: relative;
 		display: inline-block;
 		white-space: normal;
@@ -89,6 +131,7 @@ body {
 
 	
 	.c-slider__btn {
+		border: 0;
 		background: rgba(0, 0, 0, 0.6);
 		opacity: 0.5;
 		border-radius: 50%;

@@ -13,7 +13,7 @@ function HammerSlider(_this, options) {
 	var slider = {},
 		slideContainer,
 		slideIndex,
-		slideInstances,
+		setsOfClones,
 		sliderWidth,
 		nrOfSlides,
 		prefixedTransform;
@@ -47,27 +47,34 @@ function HammerSlider(_this, options) {
 
 
 	function _(element, selector, selectAll) {
-		if (selectAll) {
-			return element.querySelectorAll(selector);
-		} else {
-			return element.querySelector(selector);
-		}
+		return (selectAll) ? element.querySelectorAll(selector) : element.querySelector(selector);
 	}
 
 
 
-	function addEvent(el, event, func) {
-		el.addEventListener(event, func, false);
+	function addEvent(el, event, func, bool) {
+		el.addEventListener(event, func, !!bool);
+    }
+
+
+
+    function addClass(el, className) {
+    	el.classList.add(className);
+    }
+
+
+    function removeClass(el, className) {
+    	el.classList.remove(className);
     }
 
 
 
 	function prefixThis(prop) {
 		var prefixes = ['', '-webkit-', '-moz-', '-ms-', '-o-'],
-            block = document.createElement('div');
+            div = document.createElement('div');
 
         for (var i in prefixes) {
-            if (typeof block.style[prefixes[i] + prop] !== 'undefined') {
+            if (typeof div.style[prefixes[i] + prop] !== 'undefined') {
             	return prefixes[i] + prop;
             }
         }
@@ -112,47 +119,41 @@ function HammerSlider(_this, options) {
 
 	function getCurrentPosition() {
 		var transform = window.getComputedStyle(slideContainer, null).getPropertyValue(prefixedTransform),
-			matrixIndex = (transform.match('3d')) ? 12 : 4;	// 12 is for IE and 4 for other browsers
+			matrixIndex = transform.match('3d') ? 12 : 4;	// 12 is for IE and 4 for other browsers
 
 		return parseInt(transform.split(',')[matrixIndex]);
 	}
 
 
 
-	function getResetPosition(width) {
-		var newPos = slideIndex * width;
-		if (newPos !== 0) {
-			newPos *= -1;
-		}
-		return newPos;
+	function getResetPosition(percent) {
+		var newPos = slideIndex * (!percent ? sliderWidth : 100);
+		return (newPos !== 0) ? newPos *= -1 : newPos;
 	}
 
 
 
 	function setPosition(nextSlide) {
-		var next = nextSlide;
+		var next = nextSlide,
+			slideDistance,
+			direction;
 
-		stop();
+		stopSlideshow();
 		
 		if (!o.rewind) {
 			if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
-				var frag = document.createDocumentFragment();
-				slideInstances++;
-
-				loopSlides(function(i) {
-					frag.appendChild(slider.slides[i].cloneNode(1));
-				});
-				slideContainer.appendChild(frag);
+				if (!once) {
+					appendClones();
+				}
 			}
 			if (nextSlide === -1 || (nextSlide < 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
-				transform(nrOfSlides * sliderWidth * -1);
+				transform(nrOfSlides * sliderWidth * -1 + getCurrentPosition());
 				next = nrOfSlides - 1;
 			}
 		}
 
-		var slideDistance = next * sliderWidth * -1, 
-			direction = (nextSlide < slideIndex) ? -1 : 1;
-		
+		slideDistance = next * sliderWidth * -1;
+		direction = (nextSlide < slideIndex) ? -1 : 1;
 		slideIndex = next;
 
 		if (o.dots) {
@@ -163,7 +164,7 @@ function HammerSlider(_this, options) {
 
 
 
-	Math.easeOutQuad = function (currTime, start, change, duration) {
+	Math.easeOutQuart = function (currTime, start, change, duration) {
 		currTime /= duration;
 		currTime--;
 		return change * (currTime * currTime * currTime + 1) + start;
@@ -180,16 +181,14 @@ function HammerSlider(_this, options) {
 		function animate() {
 			if (currentTime === o.slideSpeed) {
 				if (o.slideShow && !o.stopAfterInteraction) {
-					autoSlide();
+					startSlideshow();
 				}
-				if (slideInstances > 1 && slideIndex % nrOfSlides === 0) {
+				if (setsOfClones > 1 && slideIndex % nrOfSlides === 0) {
 					clearClones();
 				}
 			} else {
 				currentTime += increment;
-				var val = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
-				transform(val);
-
+				transform(Math.easeOutQuart(currentTime, start, change, o.slideSpeed));
 				slider.animationFrame = window.requestAnimationFrame(animate);
 			}
 		}
@@ -198,13 +197,13 @@ function HammerSlider(_this, options) {
 
 
 
-	function autoSlide() {
+	function startSlideshow() {
 		slider.autoTimeOut = setTimeout(next, o.slideInterval);
 	}
 
 
 
-	function stop() {
+	function stopSlideshow() {
 		window.cancelAnimationFrame(slider.animationFrame);
 		clearTimeout(slider.autoTimeOut);
 	}
@@ -225,16 +224,24 @@ function HammerSlider(_this, options) {
 
 	function setActiveDot(active) {
 		if (o.dotActiveClass) {
-			loopSlides(function(i) {
-				var elClass = slider.dots[i].classList;
+			var activeDot = _(_this, '.' + o.dotActiveClass);
 
-				if (i === active) {
-					elClass.add(o.dotActiveClass);
-				} else if (elClass.contains(o.dotActiveClass)) {
-					elClass.remove(o.dotActiveClass);
-				}
-			});
+			if (activeDot) {
+				removeClass(activeDot, o.dotActiveClass);
+			}
+			addClass(slider.dots[active], o.dotActiveClass);
 		}
+	}
+
+
+
+	function appendClones() {
+		var frag = document.createDocumentFragment();
+		setsOfClones++;
+		loopSlides(function(i) {
+			frag.appendChild(slider.slides[i].cloneNode(1));
+		});
+		slideContainer.appendChild(frag);
 	}
 
 
@@ -245,7 +252,7 @@ function HammerSlider(_this, options) {
 			currIndex = totalSlides;
 
 			transform(0);
-			slideInstances = 1;
+			setsOfClones = 1;
 			slideIndex = 0;
 
 		for (currIndex; currIndex > 0; currIndex--) {
@@ -261,13 +268,12 @@ function HammerSlider(_this, options) {
 
 
 	function onWidthChange() {
-		var moveTo = getResetPosition(100);
+		stopSlideshow();
 		sliderWidth = _this.offsetWidth;
-		stop();
-		transform(moveTo, '%');
+		transform(getResetPosition(true), '%');
 
 		if (o.slideShow && !o.stopAfterInteraction) {
-			autoSlide();
+			startSlideshow();
 		}
 	}
 
@@ -379,7 +385,7 @@ function HammerSlider(_this, options) {
 		slider.slides = _(slideContainer, o.slideSelector, true);
 		slider.dots = _(_this, o.dotWrapSelector).children;
 
-		slideInstances = 1;
+		setsOfClones = 1;
 		nrOfSlides = slider.slides.length;
 		slideIndex = o.startSlide;
 		sliderWidth = _this.offsetWidth;
@@ -388,10 +394,34 @@ function HammerSlider(_this, options) {
 		loopSlides(function(i) {
             if (o.dots) {
 	            (function(dot, nr) {
-		            addEvent(slider.dots[nr], 'click', function(event) {
+	            	dot.innerHTML = '<span></span>';
+	            	dot.setAttribute('tabindex', 0);
+	            	dot.setAttribute('role', 'button');
+
+		            addEvent(dot, 'click', function(event) {
 		            	setPosition(nr);
-		            }, false);
-	            })(slider.dots, i);
+		            	dot.blur();
+		            });
+
+		            addEvent(dot, 'touchend', function(event) {
+		            	setPosition(nr);
+		            });
+
+		            addEvent(dot, 'keyup', function(event) {	
+                    	if (event.keyCode === 13) {
+                        	setPosition(nr);
+                    	}
+                	});
+
+                    addEvent(slider.slides[i], 'focus', slider.slides[i].onfocusin = function(e) {
+	                    _this.scrollLeft = 0;
+	                    setTimeout(function() {
+	                        _this.scrollLeft = 0;
+	                    }, 0);
+	                    setPosition(nr);
+	                }, true);
+
+	            })(slider.dots[i], i);
             }
         });
 
@@ -404,8 +434,12 @@ function HammerSlider(_this, options) {
         	setActiveDot(o.startSlide || 0);
         }
 
+    	if (o.mouseDrag) {
+    		addClass(slideContainer, 'mouse-drag-enabled');
+    	}
+
 		if (o.slideShow) {
-			autoSlide();
+			startSlideshow();
 		}
 	}
 
@@ -415,49 +449,110 @@ function HammerSlider(_this, options) {
 
 	var startPos,
 		currentPos,
-		currentSlide;
+		currentSlide,
+		once = false;
 	
     touchEvents(slideContainer, function(e, dir, phase, distance) {
     	var newPos,
     		direction;
 
-    	if (phase === 'start') {
-    		stop();
-			startPos = getCurrentPosition();
-			currentSlide = slideIndex % nrOfSlides;
-    	} else if (phase === 'move') {
-    		if (dir === 'left' || dir === 'right') {
-				if (dir === 'left' && currentSlide === nrOfSlides - 1 && Math.abs(distance) > 100) {
-	    			return;
-	    		} else if (currentSlide === 0 && distance > 100) {
-	    			return;
+		if (o.mouseDrag) {
+			addClass(slideContainer, 'is-dragging');
+		}
+
+    	if ('.' + e.target.parentNode.className === o.dotWrapSelector) {
+			return;
+		}
+
+		if (!o.rewind) {
+	    	if (phase === 'start') {
+	    		stopSlideshow();
+				startPos = getCurrentPosition();
+				currentSlide = slideIndex % nrOfSlides;
+	    	}
+
+	    	if (phase === 'move' && dir === 'left' || dir === 'right') {
+	    		if (!once) {
+	    			once = true;
+
+	    			if (slideIndex === 0 && dir === 'right') {
+						appendClones();
+						transform(nrOfSlides * sliderWidth * -1 + startPos);
+						startPos = getCurrentPosition();
+						slideIndex = nrOfSlides;
+					} 
+					if (currentSlide === nrOfSlides - 1 && dir === 'left') {
+						appendClones();
+					}
+				}
+				newPos = startPos + distance;
+				transform(newPos);
+	    	}
+
+	    	if (phase === 'end') {
+	    		if (dir === 'left') {
+	    			next();
+	    		} else if (dir === 'right') {
+	    			prev();
+	    		} else {
+	    			slide(getResetPosition(), (direction) ? 1 : -1);
 	    		}
-	    		newPos = startPos + distance;
-	    		transform(newPos);
-    		}
-    	} else if (phase === 'end') {
-    		if (dir === 'left') {
-    			if (currentSlide !== nrOfSlides - 1 && Math.abs(distance) > 30) {
-    				next();
-    				return;
-    			}
-    		} else if (dir === 'right') {
-    			if (currentSlide === 0 || distance < 30) {
-    				direction = 1;
-    			} else {
-    				prev();
-    				return;
-    			}
-    		}
-			slide(getResetPosition(sliderWidth), (direction) ? 1 : -1);
+	    		once = false;
+
+	    		if (o.mouseDrag) {
+	    			removeClass(slideContainer, 'is-dragging');
+	    		}
+	    	}
     	}
+
+
+
+    	/*
+			If rewind is activated
+    	*/
+    	if (o.rewind) {
+	    	if (phase === 'start') {
+	    		stopSlideshow();
+				startPos = getCurrentPosition();
+				currentSlide = slideIndex % nrOfSlides;
+
+	    	} else if (phase === 'move') {
+
+	    		if (dir === 'left' || dir === 'right') {
+					if (dir === 'left' && currentSlide === nrOfSlides - 1 && Math.abs(distance) > 100) {
+		    			return;
+		    		} else if (currentSlide === 0 && distance > 100) {
+		    			return;
+		    		}
+		    		newPos = startPos + distance;
+		    		transform(newPos);
+	    		}
+	    	} else if (phase === 'end') {
+
+	    		if (dir === 'left') {
+	    			if (currentSlide !== nrOfSlides - 1 && Math.abs(distance) > 30) {
+	    				next();
+	    				return;
+	    			}
+	    		} else if (dir === 'right') {
+	    			if (currentSlide === 0 || distance < 30) {
+	    				direction = 1;
+	    			} else {
+	    				prev();
+	    				return;
+	    			}
+	    		}
+				slide(getResetPosition(), (direction) ? 1 : -1);
+	    	}
+    	} /* Rewind ends */
 	});
 
 
 	return {
 		next: next,
 		prev: prev,
-		stop: stop,
+		stop: stopSlideshow,
+		start: startSlideshow,
 		resize: onWidthChange
 	};
 }
