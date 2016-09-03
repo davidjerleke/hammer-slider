@@ -23,6 +23,9 @@
 									<a href="#">
 										Testlink
 									</a>
+									<a href="#">
+										Testlink
+									</a>
 								</div>
 							</div>
 						</div>
@@ -56,17 +59,16 @@
 						</div>
 					</li>
 				</ul>
-				<ul class="c-slider__dots">
+				<!--<ul class="c-slider__dots">
 					<li class="c-slider__dot"></li>
 					<li class="c-slider__dot"></li>
 					<li class="c-slider__dot"></li>
-				</ul>
+				</ul>-->
 			</div>
 			<button class="c-slider__btn c-slider__btn--left" id="slideleft"></button>
 			<button class="c-slider__btn c-slider__btn--right" id="slideright"></button>
 		</div>
 		
-		<!--<script type="text/javascript" src="swipe.js"></script>-->
 		<script type="text/javascript" src="hammer-slider.js"></script>
 		<script type="text/javascript">
 
@@ -81,10 +83,10 @@
 				dotActiveClass: 'is-active',
 				containerSelector: '.c-slider__container',
 				slideSelector: '.c-slider__slide',
-				dotWrapSelector: '.c-slider__dots',
+				dotWrapClass: 'c-slider__dots',
 				startSlide: 0,
 				dots: true,
-				rewind: true,
+				rewind: false,
 				mouseDrag: true
 			});
 

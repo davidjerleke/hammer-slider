@@ -57,7 +57,6 @@ body {
 
 
 	.c-slider__container {
-		will-change: transform;
 		list-style: none;
 		white-space: nowrap;
 		font-size: 0;
@@ -114,7 +113,7 @@ body {
 		left: 0;
 	}
 
-	.c-slider__dot {
+	.c-slider__dots > li {
 		display: inline-block; 
 		cursor: pointer;
 		border-radius: 50%;
@@ -125,7 +124,11 @@ body {
 		
 	}
 
-		.c-slider__dot.is-active {
+		.c-slider__dots > li:not(:last-child) {
+			margin-right: 5px;
+		}
+
+		.c-slider__dots > li.is-active {
 			opacity: 0.9;
 		}
 
