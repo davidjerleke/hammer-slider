@@ -25,8 +25,14 @@
 
 
 
+/*
+    TO FIX
+    ------
+    Slider stops after first slide if 
+    stop after interaction is true and
+    nothing is touched.
 
-
+*/
 function HammerSlider(_this, options) {
     'use strict';
 
@@ -35,11 +41,11 @@ function HammerSlider(_this, options) {
         slideIndex,
         sliderWidth,
         dotWrap,
-        setsOfClones,
+        offsetCount,
         nrOfSlides,
-        prefixedTransform;
+        prefixedTransform,
+        circlePoints = {};
 
-    
     var o = {
         slideShow: false,
         slideInterval: false,
@@ -67,8 +73,8 @@ function HammerSlider(_this, options) {
 
 
 
-    function _(element, selector, selectAll) {
-        return (selectAll) ? element.querySelectorAll(selector) : element.querySelector(selector);
+    function selectEl(element, selector, all) {
+        return element['querySelector' + (all ? 'All' : '')](selector);
     }
 
 
@@ -89,7 +95,7 @@ function HammerSlider(_this, options) {
     }
 
 
-
+    /*
     function makeTabbable(el, slideIndex) {
         addEvent(el, 'focus', function(e) {
             stopSlideshow();
@@ -97,7 +103,7 @@ function HammerSlider(_this, options) {
             _this.scrollLeft = 0;
         }, true);
     }
-
+    */
 
 
     function prefixThis(prop) {
@@ -114,17 +120,25 @@ function HammerSlider(_this, options) {
 
 
 
-    function transform(value, unit) {
-        var u = (unit) ? unit : 'px';
-        slideContainer.style[prefixedTransform] = 'translateX(' + value + u + ') translateZ(0)';
+    function transform(el, value, unit) {
+        el.style[prefixedTransform] = 'translate3d(' + value + (unit ? unit : 'px') + ', 0, 0)';
     }
 
 
 
     function loopSlides(callback) {
         for (var i = 0; i < nrOfSlides; i++) {
-            callback.call(null, i);
+            callback.call(slider, i);
         }
+    }
+
+
+
+    function getCurrentPosition() {
+        var transform = window.getComputedStyle(slideContainer, null).getPropertyValue(prefixedTransform),
+            matrixIndex = transform.match('3d') ? 12 : 4;   // 12 is for IE and 4 for other browsers
+
+        return parseInt(transform.split(',')[matrixIndex]);
     }
 
 
@@ -148,18 +162,29 @@ function HammerSlider(_this, options) {
 
 
 
-    function getCurrentPosition() {
-        var transform = window.getComputedStyle(slideContainer, null).getPropertyValue(prefixedTransform),
-            matrixIndex = transform.match('3d') ? 12 : 4;   // 12 is for IE and 4 for other browsers
+    function resetSlider(position) {
+        var pos = (typeof position !== 'undefined') ? Math.abs(position) : o.startSlide;
+        slideIndex = pos;
 
-        return parseInt(transform.split(',')[matrixIndex]);
-    }
+        if (!o.rewind) {
+            circlePoints['1'] = {
+                slide: 0,
+                flipPoint: sliderWidth * (nrOfSlides - 2) * -1,
+                toPos: nrOfSlides * 100,
+            };
+            circlePoints['-1'] = {
+                slide: nrOfSlides - 1,
+                flipPoint: 0,
+                toPos: -100,
+            };
+        }
 
+        loopSlides(function(i) {
+            transform(this.slides[i], i * 100, '%');
+        });
 
-
-    function getResetPosition(percent) {
-        var newPos = slideIndex * (!percent ? sliderWidth : 100);
-        return (newPos !== 0) ? newPos *= -1 : newPos;
+        transform(slideContainer, pos * 100 * -1, '%');
+        firstTime = false;
     }
 
 
@@ -170,17 +195,9 @@ function HammerSlider(_this, options) {
             direction;
 
         stopSlideshow();
-        
-        if (!o.rewind) {
-            if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
-                if (!once) {
-                    appendClones();
-                }
-            }
-            if (nextSlide === -1 || (nextSlide < 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
-                transform(nrOfSlides * sliderWidth * -1 + getCurrentPosition());
-                next = nrOfSlides - 1;
-            }
+
+        if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
+            offsetCount++;
         }
 
         slideDistance = next * sliderWidth * -1;
@@ -188,42 +205,96 @@ function HammerSlider(_this, options) {
         slideIndex = next;
 
         if (o.dots) {
-            setActiveDot(slideIndex % nrOfSlides);
+            setActiveDot(Math.abs(slideIndex % nrOfSlides));
         }
         slide(slideDistance, direction);
     }
 
 
 
-    Math.easeOutQuart = function (currTime, start, change, duration) {
-        currTime /= duration;
-        currTime--;
-        return change * (currTime * currTime * currTime + 1) + start;
+    Math.easeOutQuad = function(t, b, c, d) {
+        t /= d;
+        return -c * t*(t-2) + b;
     };
 
 
+    var lastDirection,
+        firstTime = false;
+
 
     function slide(slideDistance, direction) {
-        var currentTime = 0,
-            start = getCurrentPosition(),
+
+        var currPos = getCurrentPosition(),
+            currentTime = 0,
+            start = currPos,
             change = slideDistance - start,
             increment = 20;
 
+        if (!lastDirection) {
+            lastDirection = direction;
+        }
+
         function animate() {
             if (currentTime === o.slideSpeed) {
+                if (slideIndex % nrOfSlides === o.startSlide) {
+                    resetSlider();
+                }
                 if (o.slideShow && !o.stopAfterInteraction) {
                     startSlideshow();
                 }
-                if (setsOfClones > 1 && slideIndex % nrOfSlides === 0) {
-                    clearClones();
-                }
             } else {
+                if (!o.rewind) {
+                    var forward = circlePoints[1],
+                        backward = circlePoints[-1];
+
+                    /* Forward */
+                    if (currPos < forward.flipPoint) {
+                        backward.flipPoint = forward.flipPoint;
+
+                        transform(slider.slides[forward.slide], forward.toPos, '%');
+                        forward.flipPoint -= sliderWidth;
+                        forward.toPos += 100;
+                        forward.slide = (forward.slide === nrOfSlides - 1) ? 0 : ++forward.slide;
+                        lastDirection = 1;
+                    }
+
+                    /* Backward */
+                    if (currPos > backward.flipPoint) {
+                        if (lastDirection === 1) {
+                            backward.slide = forward.slide;
+                            backward.toPos = forward.toPos - (nrOfSlides * 100);
+                        } else {
+                            if (backward.flipPoint === 0) {
+                                transform(slider.slides[backward.slide - 1], backward.toPos - 100, '%');
+                            }
+                            if (currPos < sliderWidth && !firstTime) {
+                                backward.flipPoint += sliderWidth / 2;
+                                firstTime = true;
+                            } else {
+                                backward.flipPoint += sliderWidth;
+                            }
+                        }
+
+                        if (backward.flipPoint !== 0) {
+                            forward.flipPoint = backward.flipPoint - sliderWidth;
+                            forward.slide = backward.slide;
+                            forward.toPos = backward.toPos + nrOfSlides * 100;
+                        }
+
+                        transform(slider.slides[backward.slide], backward.toPos, '%');
+                        backward.toPos -= 100;
+                        backward.slide = (!backward.slide) ? nrOfSlides - 1 : --backward.slide;
+                        lastDirection = -1;
+                    }
+                }
+
                 currentTime += increment;
-                transform(Math.easeOutQuart(currentTime, start, change, o.slideSpeed));
-                slider.animationFrame = window.requestAnimationFrame(animate);
+                currPos = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
+                transform(slideContainer, currPos);
+                slider.animationFrame = requestAnimationFrame(animate);
             }
         }
-        animate();
+        slider.animationFrame = requestAnimationFrame(animate);
     }
 
 
@@ -235,7 +306,7 @@ function HammerSlider(_this, options) {
 
 
     function stopSlideshow() {
-        window.cancelAnimationFrame(slider.animationFrame);
+        cancelAnimationFrame(slider.animationFrame);
         clearTimeout(slider.autoTimeOut);
     }
 
@@ -255,43 +326,8 @@ function HammerSlider(_this, options) {
 
     function setActiveDot(active) {
         if (o.dotActiveClass) {
-            removeClass(_(dotWrap, '.' + o.dotActiveClass), o.dotActiveClass);
+            removeClass(selectEl(dotWrap, '.' + o.dotActiveClass), o.dotActiveClass);
             addClass(slider.dots[active], o.dotActiveClass);
-        }
-    }
-
-
-
-    function appendClones() {
-        var frag = document.createDocumentFragment();
-        setsOfClones++;
-
-        loopSlides(function(i) {
-            var clone = slider.slides[i].cloneNode(1);
-            makeTabbable(clone, i + nrOfSlides);
-            frag.appendChild(clone);
-        });
-        slideContainer.appendChild(frag);
-    }
-
-
-
-    function clearClones() {
-        var slides = _(slideContainer, o.slideSelector, true), 
-            totalSlides = slides.length,
-            currIndex = totalSlides;
-
-            transform(0);
-            setsOfClones = 1;
-            slideIndex = 0;
-
-        for (currIndex; currIndex > 0; currIndex--) {
-            var current = slides[currIndex - 1];
-
-            if (totalSlides > nrOfSlides && current.parentNode === slideContainer) {
-                slideContainer.removeChild(current); 
-                totalSlides--;
-            }
         }
     }
 
@@ -300,7 +336,7 @@ function HammerSlider(_this, options) {
     function onWidthChange() {
         stopSlideshow();
         sliderWidth = _this.offsetWidth;
-        transform(getResetPosition(true), '%');
+        resetSlider(slideIndex % nrOfSlides);
 
         if (o.slideShow && !o.stopAfterInteraction) {
             startSlideshow();
@@ -310,7 +346,7 @@ function HammerSlider(_this, options) {
 
 
     function touchEvents(el, callback) {
-
+        /*
         function isMouse(e) {
             try {
                 e.changedTouches[0];
@@ -395,7 +431,7 @@ function HammerSlider(_this, options) {
             }
         }
 
-        addEvent(_this, 'touchstart', touchStart);
+        /*addEvent(_this, 'touchstart', touchStart);
         addEvent(_this, 'touchmove', touchMove);
         addEvent(_this, 'touchend', touchEnd);
 
@@ -403,7 +439,7 @@ function HammerSlider(_this, options) {
             addEvent(_this, 'mousedown', touchStart);
             addEvent(_this, 'mousemove', touchMove);
             addEvent(_this, 'mouseup', touchEnd);
-        }
+        }*/
     }
 
 
@@ -411,19 +447,34 @@ function HammerSlider(_this, options) {
     function setup() {
         options && mergeObjects(o, options);
 
-        slideContainer = _(_this, o.containerSelector);
-        slider.slides = _(slideContainer, o.slideSelector, true);
+        slideContainer = selectEl(_this, o.containerSelector);
+        slider.slides = selectEl(slideContainer, o.slideSelector, true);
         nrOfSlides = slider.slides.length;
+        slider.dots = document.createDocumentFragment();
+        slideIndex = o.startSlide;
+        sliderWidth = _this.offsetWidth;
+        offsetCount = 1;    // PROABABLY UNNECESSARY
+        prefixedTransform = prefixThis('transform');
 
         if (nrOfSlides < 2) {
             return;
         }
 
-        slider.dots = document.createDocumentFragment();
-        slideIndex = o.startSlide;
-        sliderWidth = _this.offsetWidth;
-        setsOfClones = 1;
-        prefixedTransform = prefixThis('transform');
+        /*  
+            SPECIAL CASE
+            ------------
+            If only 2 slides create clones 
+            for the carousel effect to work.
+            Set TABINDEX to -1 for clones.
+        */
+        if (!o.rewind && nrOfSlides === 2) {
+            slideContainer.appendChild(slider.slides[0].cloneNode(1));
+            slideContainer.appendChild(slider.slides[nrOfSlides - 1].cloneNode(1));
+            slider.slides = selectEl(slideContainer, o.slideSelector, true);
+            nrOfSlides += 2;
+        }
+
+        resetSlider(o.startSlide);
 
         loopSlides(function(i) {
             if (o.dots) {
@@ -435,26 +486,29 @@ function HammerSlider(_this, options) {
                     dot.setAttribute('role', 'button');
 
                     addEvent(dot, 'click', function(e) {
-                        setPosition(nr);
+                        setPosition(nr, true);
                         dot.blur();
                     });
 
                     addEvent(dot, 'touchend', function(e) {
-                        setPosition(nr);
+                        setPosition(nr, true);
                     });
 
                     addEvent(dot, 'keyup', function(e) {    
                         if (e.keyCode === 13) {
-                            setPosition(nr);
+                            setPosition(nr, true);
                         }
                     });
                     slider.dots.appendChild(dot);
                 })(newDot, i);
             }
-            makeTabbable(slider.slides[i], i);
-        });
 
-        transform(o.startSlide ? (o.startSlide * sliderWidth * -1) : 0);
+            addEvent(this.slides[i], 'focus', function(e) {
+                stopSlideshow();
+                setPosition(i);
+                _this.scrollLeft = 0;
+            }, true);
+        });
 
         addEvent(window, 'resize', onWidthChange);
         addEvent(window, 'orientationchange', onWidthChange);
@@ -480,6 +534,8 @@ function HammerSlider(_this, options) {
 
 
     setup();
+
+
 
     var startPos,
         currentPos,
@@ -528,7 +584,6 @@ function HammerSlider(_this, options) {
         }
 
         if (phase === 'end') {
-
             if (o.mouseDrag) {
                 removeClass(slideContainer, 'is-dragging');
             }
@@ -552,7 +607,6 @@ function HammerSlider(_this, options) {
             }
             once = false;
         }
-
     });
 
 
