@@ -28,9 +28,23 @@
 /*
     TO FIX
     ------
-    Slider stops after first slide if 
-    stop after interaction is true and
-    nothing is touched.
+    *   Slider stops after first slide if 
+        stop after interaction is true and
+        nothing is touched.
+
+    *   When rewind is true, make sure resisting
+        don't start before user swipes less than 0 or
+        more than slideContainer width. This should
+        not be dependent on slideIndex like it is now.
+
+    *   Fix the dots to work when rewind is false,
+        when slider is a carousel.
+
+    *   Rewrite to ES6.
+
+    *   Add Gulp.
+
+    *   Look over code for optimizations.
 
 */
 function HammerSlider(_this, options) {
@@ -44,7 +58,8 @@ function HammerSlider(_this, options) {
         offsetCount,
         nrOfSlides,
         prefixedTransform,
-        circlePoints = {};
+        flipPoints = {},
+        lastDirection;
 
     var o = {
         slideShow: false,
@@ -95,16 +110,6 @@ function HammerSlider(_this, options) {
     }
 
 
-    /*
-    function makeTabbable(el, slideIndex) {
-        addEvent(el, 'focus', function(e) {
-            stopSlideshow();
-            setPosition(slideIndex);
-            _this.scrollLeft = 0;
-        }, true);
-    }
-    */
-
 
     function prefixThis(prop) {
         var prefixes = ['', '-webkit-', '-moz-', '-ms-', '-o-'],
@@ -143,6 +148,34 @@ function HammerSlider(_this, options) {
 
 
 
+    function resetSlider(position) {
+        var pos = (typeof position !== 'undefined') ? Math.abs(position) : o.startSlide;
+        slideIndex = pos;
+
+        if (!o.rewind) {
+            flipPoints['1'] = {
+                slide: 0,
+                flipPoint: (pos > 0 && pos <= nrOfSlides - 2) ? ((pos * sliderWidth * 2) - (sliderWidth / 2)) * -1 : ((sliderWidth * (nrOfSlides - 2)) + (sliderWidth / 2)) * -1,
+                toPos: nrOfSlides * 100,
+            };
+            flipPoints['-1'] = {
+                slide: nrOfSlides - 1,
+                flipPoint: (pos > 0 && pos <= nrOfSlides - 2) ? sliderWidth / 2 * -1 : 0,
+                toPos: nrOfSlides * 100 * -1,
+            };
+        }
+
+        loopSlides(function(i) {
+            transform(this.slides[i], 0);
+            this.slides[i].style.width = sliderWidth + 'px';
+        });
+
+        slideContainer.style.width = nrOfSlides * sliderWidth + 'px';
+        transform(slideContainer, pos * sliderWidth * -1);
+    }
+
+
+
     function move(direction) {
         var nextSlide = slideIndex + direction;
         
@@ -158,33 +191,6 @@ function HammerSlider(_this, options) {
             }
         }
         setPosition(nextSlide);
-    }
-
-
-
-    function resetSlider(position) {
-        var pos = (typeof position !== 'undefined') ? Math.abs(position) : o.startSlide;
-        slideIndex = pos;
-
-        if (!o.rewind) {
-            circlePoints['1'] = {
-                slide: 0,
-                flipPoint: sliderWidth * (nrOfSlides - 2) * -1,
-                toPos: nrOfSlides * 100,
-            };
-            circlePoints['-1'] = {
-                slide: nrOfSlides - 1,
-                flipPoint: 0,
-                toPos: -100,
-            };
-        }
-
-        loopSlides(function(i) {
-            transform(this.slides[i], i * 100, '%');
-        });
-
-        transform(slideContainer, pos * 100 * -1, '%');
-        firstTime = false;
     }
 
 
@@ -212,27 +218,61 @@ function HammerSlider(_this, options) {
 
 
 
-    Math.easeOutQuad = function(t, b, c, d) {
-        t /= d;
-        return -c * t*(t-2) + b;
-    };
+    function circle(callback) {
+        callback.call(slider, flipPoints[1], flipPoints[-1]);
+    }
 
 
-    var lastDirection,
-        firstTime = false;
+
+    function circleForward() {
+        circle(function(forward, backward) {
+            backward.flipPoint = forward.flipPoint;
+            transform(this.slides[forward.slide], forward.toPos, '%');
+            forward.flipPoint -= sliderWidth;
+            forward.slide = (forward.slide === nrOfSlides - 1) ? 0 : ++forward.slide;
+
+            if (!forward.slide) {
+                forward.toPos += nrOfSlides * 100; 
+            }
+            lastDirection = 1;
+        });
+    }
+
+
+
+    function circleBackward() {
+        circle(function(forward, backward) {
+            if (lastDirection === 1) {
+                backward.slide = forward.slide;
+                backward.toPos = forward.toPos - (nrOfSlides * 100);
+            } else {
+                backward.flipPoint += (backward.flipPoint === 0) ? sliderWidth / 2 : sliderWidth;
+            }
+
+            forward.flipPoint = backward.flipPoint - sliderWidth;
+            forward.slide = backward.slide;
+            forward.toPos = backward.toPos + nrOfSlides * 100;
+
+            transform(this.slides[backward.slide], backward.toPos, '%');
+            backward.slide = (!backward.slide) ? nrOfSlides - 1 : --backward.slide;
+
+            if (backward.slide === nrOfSlides - 1) {
+                backward.toPos -= nrOfSlides * 100; 
+            }
+            lastDirection = -1;
+        });
+    }
+
 
 
     function slide(slideDistance, direction) {
-
-        var currPos = getCurrentPosition(),
+        var forward = flipPoints[1],
+            backward = flipPoints[-1],
+            currPos = getCurrentPosition(),
             currentTime = 0,
             start = currPos,
             change = slideDistance - start,
             increment = 20;
-
-        if (!lastDirection) {
-            lastDirection = direction;
-        }
 
         function animate() {
             if (currentTime === o.slideSpeed) {
@@ -244,47 +284,14 @@ function HammerSlider(_this, options) {
                 }
             } else {
                 if (!o.rewind) {
-                    var forward = circlePoints[1],
-                        backward = circlePoints[-1];
-
                     /* Forward */
                     if (currPos < forward.flipPoint) {
-                        backward.flipPoint = forward.flipPoint;
-
-                        transform(slider.slides[forward.slide], forward.toPos, '%');
-                        forward.flipPoint -= sliderWidth;
-                        forward.toPos += 100;
-                        forward.slide = (forward.slide === nrOfSlides - 1) ? 0 : ++forward.slide;
-                        lastDirection = 1;
+                        circleForward();
                     }
 
                     /* Backward */
                     if (currPos > backward.flipPoint) {
-                        if (lastDirection === 1) {
-                            backward.slide = forward.slide;
-                            backward.toPos = forward.toPos - (nrOfSlides * 100);
-                        } else {
-                            if (backward.flipPoint === 0) {
-                                transform(slider.slides[backward.slide - 1], backward.toPos - 100, '%');
-                            }
-                            if (currPos < sliderWidth && !firstTime) {
-                                backward.flipPoint += sliderWidth / 2;
-                                firstTime = true;
-                            } else {
-                                backward.flipPoint += sliderWidth;
-                            }
-                        }
-
-                        if (backward.flipPoint !== 0) {
-                            forward.flipPoint = backward.flipPoint - sliderWidth;
-                            forward.slide = backward.slide;
-                            forward.toPos = backward.toPos + nrOfSlides * 100;
-                        }
-
-                        transform(slider.slides[backward.slide], backward.toPos, '%');
-                        backward.toPos -= 100;
-                        backward.slide = (!backward.slide) ? nrOfSlides - 1 : --backward.slide;
-                        lastDirection = -1;
+                        circleBackward();
                     }
                 }
 
@@ -296,6 +303,13 @@ function HammerSlider(_this, options) {
         }
         slider.animationFrame = requestAnimationFrame(animate);
     }
+
+
+
+    Math.easeOutQuad = function(t, b, c, d) {
+        t /= d;
+        return -c * t*(t-2) + b;
+    };
 
 
 
@@ -345,101 +359,78 @@ function HammerSlider(_this, options) {
 
 
 
-    function touchEvents(el, callback) {
-        /*
-        function isMouse(e) {
-            try {
-                e.changedTouches[0];
-            } catch (e) {
-                return true;
-            }
-            return false;
-        }
+    function touch() {
+        var startPos,
+            currentSlide;
 
-        var touchsurface = el,
-            dir,
-            swipeType,
-            startX,
-            startY,
-            distX,
-            distY,
-            threshold = 100,    // Minimum distance to be considered a swipe
-            restraint = 100,    // Maximum distance allowed at the same time in perpendicular direction
-            allowedTime = 300,  // Maximum time allowed to travel that distance
-            elapsedTime,
-            startTime,
-            mouseDown = false,
-            handletouch = callback || function(evt, dir, phase, swipetype, distance) {};
+        touchEvents(slideContainer, {
+            mouse: o.mouseDrag
+        }, function(e, direction, phase, distance, swipeType) {
+            var newPos,
+                forward = flipPoints[1],
+                backward = flipPoints[-1];
 
-        function touchStart(e) {
-            var touchobj = isMouse(e) ? e : e.changedTouches[0],
-                dist = 0;
-
-            dir = 'none';
-            swipeType = 'none';
-            startX = touchobj.pageX;
-            startY = touchobj.pageY;
-            startTime = new Date().getTime();
-            handletouch(e, 'none', 'start', 0, swipeType);
-
-            if (isMouse(e)) {
-                mouseDown = true;
-            }
-        }
-
-        function touchMove(e) {
-            e.preventDefault();
-
-            if (isMouse(e) && !mouseDown) { // Prevent mousemove from firing before mousedown event is triggered
-                return;
-            }
-            
-            var touchobj = isMouse(e) ? e : e.changedTouches[0],
-                axis;
-                distX = touchobj.pageX - startX;
-                distY = touchobj.pageY - startY;    
-
-            if (Math.abs(distX) > Math.abs(distY)) {
-                dir = (distX < 0) ? 'left' : 'right';
-                axis = distX;
-            }
-            else {
-                dir = (distY < 0) ? 'up' : 'down';
-                axis = distY;
-            }
-            handletouch(e, dir, 'move', axis, swipeType);
-        }
-
-        function touchEnd(e) {
-            e.preventDefault();
-
-            var touchobj = isMouse(e) ? e : e.changedTouches[0];
-                elapsedTime = new Date().getTime() - startTime;
-          
-            if (elapsedTime <= allowedTime) {
-                if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
-                    swipeType = dir;
+            if (phase === 'start') {
+                if (o.mouseDrag) {
+                    addClass(slideContainer, 'is-dragging');
                 }
-                else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
-                    swipeType = dir;
+                stopSlideshow();
+                startPos = getCurrentPosition();
+                currentSlide = slideIndex % nrOfSlides;
+            }
+
+            if (phase === 'move' && direction === 'left' || direction === 'right') {
+                newPos = getCurrentPosition();
+
+                if (!o.rewind) {
+                    /* Forward */
+                    if (direction === 'left' && newPos < forward.flipPoint) {
+                        circleForward();
+                    }
+
+                    /* Backward */
+                    if (direction === 'right' && newPos > backward.flipPoint) {
+                        circleBackward();
+                    }
+                }
+
+                newPos = startPos + distance;
+                if (o.rewind) {
+                    if (!currentSlide && direction === 'right' || currentSlide === nrOfSlides - 1 && direction === 'left') {
+                        newPos = startPos + (distance / 3);
+                    }
+                }
+                slider.animationFrame = requestAnimationFrame(function() {
+                    transform(slideContainer, newPos);
+                });
+            }
+
+            if (phase === 'end') {
+                if (o.mouseDrag) {
+                    removeClass(slideContainer, 'is-dragging');
+                }
+
+                if (Math.abs(distance) > 30) {
+                    if (direction === 'left') {
+                        /* REWRITE TO TERNARY */
+                        if (o.rewind && currentSlide === nrOfSlides - 1) {
+                            setPosition(nrOfSlides - 1);
+                        } else {
+                            next();
+                        } 
+                    } else if (direction === 'right') {
+                        /* REWRITE TO TERNARY */
+                        if (o.rewind && !currentSlide) {
+                            setPosition(0);
+                        } else {
+                            prev();
+                        }
+                    }
+                } else {
+                    setPosition(slideIndex, -1);
                 }
             }
-            handletouch(e, dir, 'end', (dir =='left' || dir =='right') ? distX : distY, swipeType);
-
-            if (isMouse(e)) {
-                mouseDown = false;
-            }
-        }
-
-        /*addEvent(_this, 'touchstart', touchStart);
-        addEvent(_this, 'touchmove', touchMove);
-        addEvent(_this, 'touchend', touchEnd);
-
-        if (o.mouseDrag) {
-            addEvent(_this, 'mousedown', touchStart);
-            addEvent(_this, 'mousemove', touchMove);
-            addEvent(_this, 'mouseup', touchEnd);
-        }*/
+        });
     }
 
 
@@ -529,85 +520,14 @@ function HammerSlider(_this, options) {
         if (o.slideShow) {
             startSlideshow();
         }
+
+        touch();
     }
 
 
 
     setup();
 
-
-
-    var startPos,
-        currentPos,
-        currentSlide,
-        once = false;
-    
-    touchEvents(slideContainer, function(e, dir, phase, distance) {
-        var newPos,
-            direction;
-
-        if ('.' + e.target.parentNode.className === o.dotWrapClass) {
-            return;
-        }
-
-        if (phase === 'start') {
-            if (o.mouseDrag) {
-                addClass(slideContainer, 'is-dragging');
-            }
-            stopSlideshow();
-            startPos = getCurrentPosition();
-            currentSlide = slideIndex % nrOfSlides;
-        }
-
-        if (phase === 'move' && dir === 'left' || dir === 'right') {
-            if (!once && !o.rewind) {
-                once = true;
-
-                if (!slideIndex || currentSlide === nrOfSlides - 1) {
-                    appendClones();
-                }
-
-                if (!slideIndex && dir === 'right') {
-                    transform(nrOfSlides * sliderWidth * -1 + startPos);
-                    startPos = getCurrentPosition();
-                    slideIndex = nrOfSlides;
-                }
-            }
-            newPos = startPos + distance;
-
-            if (o.rewind) {
-                if (!currentSlide && dir === 'right' || currentSlide === nrOfSlides - 1 && dir === 'left') {
-                    newPos = startPos + (distance / 3);
-                }
-            }
-            transform(newPos);
-        }
-
-        if (phase === 'end') {
-            if (o.mouseDrag) {
-                removeClass(slideContainer, 'is-dragging');
-            }
-
-            if (Math.abs(distance) > 30) {
-                if (dir === 'left') {
-                    if (o.rewind && currentSlide === nrOfSlides - 1) {
-                        slide(getResetPosition(), -1);
-                    } else {
-                        next();
-                    } 
-                } else if (dir === 'right') {
-                    if (o.rewind && !currentSlide) {
-                        slide(getResetPosition(), 1);
-                    } else {
-                        prev();
-                    }
-                }
-            } else {
-                slide(getResetPosition(), -1);
-            }
-            once = false;
-        }
-    });
 
 
     return {
