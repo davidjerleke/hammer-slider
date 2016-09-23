@@ -6,8 +6,8 @@
 
 .u-clearfix:before,
 .u-clearfix:after {
-    content: " "; /* 1 */
-    display: table; /* 2 */
+    content: " ";
+    display: table;
 }
 
 .u-clearfix:after {
@@ -51,14 +51,10 @@ body {
 .c-slider__container,
 .c-slider__slide,
 .c-slider__dots {
-	-webkit-transform: translate3d(0,0,0);
-    -ms-transform: translate3d(0,0,0);
-    -moz-transform: translate3d(0,0,0);
-    transform: translate3d(0,0,0);
-	-webkit-backface-visibility: hidden;
-    -moz-backface-visibility: hidden;
-    -ms-backface-visibility: hidden;
-    backface-visibility: hidden;
+   -webkit-transform: translate3d(0, 0, 0);
+   -moz-transform: translate3d(0, 0, 0);
+   -ms-transform: translate3d(0, 0, 0);
+   transform: translate3d(0, 0, 0);
 }
 
 
