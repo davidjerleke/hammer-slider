@@ -42,7 +42,7 @@ body {
 
 .c-slider-wrap {
 	position: relative;
-
+	width: 100%;
 	/*width: 30%;
 	margin-left: 30%;*/
 }
@@ -51,10 +51,10 @@ body {
 .c-slider__container,
 .c-slider__slide,
 .c-slider__dots {
-   -webkit-transform: translate3d(0, 0, 0);
-   -moz-transform: translate3d(0, 0, 0);
-   -ms-transform: translate3d(0, 0, 0);
-   transform: translate3d(0, 0, 0);
+   -webkit-backface-visibility: hidden;
+   -moz-backface-visibility: hidden;
+   -ms-backface-visibility: hidden;
+   backface-visibility: hidden;
 }
 
 
