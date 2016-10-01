@@ -192,14 +192,3 @@ function touchEvents(_this, options, callback) {
 
     init();
 }
-
-
-
-/*var el = document.getElementById('slider');
-
-touchEvents(el, {
-    mouse: true,
-}, function(e, dir, phase, distance, swipeType) {
-
-});
-*/

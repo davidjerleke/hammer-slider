@@ -35,6 +35,10 @@
     *   Add flick feature for fast swipes 
         that moves multiple slides.
 
+    *   Slidespeed only takes even numbers of 
+        10. If given number is not even, make
+        it so.
+
     *   Rewrite to ES6.
 
     *   Add Gulp.
@@ -51,13 +55,12 @@ function HammerSlider(_this, options) {
         dotWrap,
         nrOfSlides,
         prefixedTransform,
-        circlePoints = {},
-        lastDirection;
+        circlePoints = {};
 
     var o = {
         slideShow: false,
         slideInterval: false,
-        slideSpeed: 300,
+        slideSpeed: 50,
         startSlide: 0,
         stopAfterInteraction: true,
         rewind: false,
@@ -156,14 +159,15 @@ function HammerSlider(_this, options) {
 
             circlePoints['-1'] = {
                 slide: (pos === nrOfSlides - 1) ? 0 : (!pos) ? nrOfSlides - 2 : nrOfSlides - 1,
-                flipPoint: (pos * slider.width * -1) +  slider.width / 2,
+                flipPoint: (pos * slider.width * -1) + slider.width / 2,
                 toPos: (pos === nrOfSlides - 1) ? 0 : nrOfSlides * 100 * -1,
             };
         }
 
         loopSlides(function(i) {
+            var slidePosition;
+
             if (!o.rewind) {
-                var slidePosition;
                 if (!i && pos === nrOfSlides - 1) {
                     slidePosition = nrOfSlides * 100;
                 } else if (i === nrOfSlides - 1 && !pos) {
@@ -171,11 +175,11 @@ function HammerSlider(_this, options) {
                 } else {
                     slidePosition = 0;
                 }
-                transform(this.slides[i], slidePosition, '%');
             } else {
-                transform(this.slides[i], 0);
+                slidePosition = 0;
             }
 
+            transform(this.slides[i], slidePosition, '%');
             this.slides[i].style.width = slider.width + 'px';
         });
 
@@ -267,12 +271,10 @@ function HammerSlider(_this, options) {
         slideIndex = next;
 
         if (o.dots) {
-            if (slideDistance < 0) {
-                activeDotNr = Math.abs(slideIndex % nrOfSlides);
-            } else {
-                activeDotNr = nrOfSlides - Math.abs(slideIndex % nrOfSlides);
-                if (activeDotNr > nrOfSlides - 1) activeDotNr = 0;
-            }
+            var relativeIndex = Math.abs(slideIndex % nrOfSlides);
+            activeDotNr = (slideDistance < 0) ? relativeIndex : nrOfSlides - relativeIndex;
+            
+            if (activeDotNr > nrOfSlides - 1) activeDotNr = 0;
             setActiveDot(activeDotNr);
         }
 
@@ -286,7 +288,7 @@ function HammerSlider(_this, options) {
             start = currPos,
             change = slideDistance - start,
             currentTime = 0,
-            increment = 1;
+            increment = 2;
 
         function animate() {
             if (currentTime === o.slideSpeed) {
@@ -382,9 +384,8 @@ function HammerSlider(_this, options) {
                 startPos = getCurrentPosition();
                 currentSlide = slideIndex % nrOfSlides;
 
-                if (o.mouseDrag) {
-                    addClass(slideContainer, 'is-dragging');
-                }
+                // Add drag class
+                addClass(slideContainer, 'is-dragging');
             }
 
             if (phase === 'move') {
@@ -413,9 +414,8 @@ function HammerSlider(_this, options) {
                     setPosition(slideIndex);
                 }
 
-                if (o.mouseDrag) {
-                    removeClass(slideContainer, 'is-dragging');
-                }
+                // Remove drag class
+                removeClass(slideContainer, 'is-dragging');
             }
         });
     }
@@ -423,6 +423,7 @@ function HammerSlider(_this, options) {
 
 
     function setup() {
+        // Merge user options into defaults
         options && mergeObjects(o, options);
 
         slideContainer = selectEl(_this, o.containerSelector);
