@@ -116,18 +116,19 @@
 
 			var sliderElement = document.getElementById('slider'),
 				slider = HammerSlider(sliderElement, {
-				slideShow: true,
+				slideShow: false,
 				slideInterval: 1000,
-				slideSpeed: 50,
+				slideSpeed: 80,
 				stopAfterInteraction: true,
 				dotActiveClass: 'is-active',
 				containerSelector: '.c-slider__container',
 				slideSelector: '.c-slider__slide',
 				dotWrapClass: 'c-slider__dots',
-				startSlide: 0,
+				startSlide: 2,
 				dots: true,
 				rewind: false,
-				mouseDrag: true
+				mouseDrag: true,
+				dragThreshold: 10
 			});
 
 			document.getElementById('slideright').addEventListener('click', slider.next, false);

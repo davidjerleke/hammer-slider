@@ -30,10 +30,10 @@
     ------
     *   Slider stops after first slide if 
         stop after interaction is true and
-        nothing is touched.    
+        nothing is touched.
 
-    *   Fix the dots to work when rewind is false,
-        when slider is a carousel.
+    *   Add flick feature for fast swipes 
+        that moves multiple slides.
 
     *   Rewrite to ES6.
 
@@ -49,7 +49,6 @@ function HammerSlider(_this, options) {
         slideContainer,
         slideIndex,
         dotWrap,
-        offsetCount,
         nrOfSlides,
         prefixedTransform,
         circlePoints = {},
@@ -67,7 +66,8 @@ function HammerSlider(_this, options) {
         containerSelector: undefined,
         dotWrapClass: undefined,
         dotActiveClass: undefined,
-        mouseDrag: false
+        mouseDrag: false,
+        dragThreshold: 10
     };
 
 
@@ -146,7 +146,6 @@ function HammerSlider(_this, options) {
         var pos = (typeof position !== 'undefined') ? Math.abs(position) : o.startSlide;
         slideIndex = pos;
         slider.width = _this.offsetWidth;
-        offsetCount = 1;
 
         if (!o.rewind) {
             circlePoints['1'] = {
@@ -164,13 +163,15 @@ function HammerSlider(_this, options) {
 
         loopSlides(function(i) {
             if (!o.rewind) {
+                var slidePosition;
                 if (!i && pos === nrOfSlides - 1) {
-                    transform(this.slides[i], nrOfSlides * 100, '%');
+                    slidePosition = nrOfSlides * 100;
                 } else if (i === nrOfSlides - 1 && !pos) {
-                    transform(this.slides[i], nrOfSlides * -1 * 100, '%');
+                    slidePosition = nrOfSlides * -1 * 100;
                 } else {
-                    transform(this.slides[i], 0);
+                    slidePosition = 0;
                 }
+                transform(this.slides[i], slidePosition, '%');
             } else {
                 transform(this.slides[i], 0);
             }
@@ -180,6 +181,48 @@ function HammerSlider(_this, options) {
 
         slideContainer.style.width = nrOfSlides * slider.width + 'px';
         transform(slideContainer, pos * slider.width * -1);
+    }
+
+
+
+    function hasReachedCirclePoint(position) {
+        var forward = circlePoints[1],
+            backward = circlePoints[-1];
+
+        if (position < forward.flipPoint) {
+            circle(1);
+        }
+        if (position > backward.flipPoint) {
+            circle(-1);
+        }
+    }
+
+
+
+    function circle(direction) {
+        var opposite = (direction > 0) ? -1 : 1,
+            currCircle = circlePoints[direction];
+
+        mergeObjects(circlePoints[opposite], {
+            flipPoint: currCircle.flipPoint,
+            slide: currCircle.slide,
+            toPos: currCircle.toPos + nrOfSlides * 100 * opposite
+        });
+
+        transform(slider.slides[currCircle.slide], currCircle.toPos, '%');
+        currCircle.flipPoint += slider.width * opposite;
+
+        if (direction === 1) {
+            currCircle.slide = (currCircle.slide === nrOfSlides - 1) ? 0 : currCircle.slide + 1;
+            if (!currCircle.slide) {
+                currCircle.toPos += nrOfSlides * 100; 
+            }
+        } else {
+            currCircle.slide = (!currCircle.slide) ? nrOfSlides - 1 : currCircle.slide - 1;
+            if (currCircle.slide === nrOfSlides - 1) {
+                currCircle.toPos -= nrOfSlides * 100; 
+            }
+        }
     }
 
 
@@ -205,65 +248,35 @@ function HammerSlider(_this, options) {
 
     function setPosition(nextSlide, relative) {
         var next = nextSlide,
+            direction = (nextSlide < slideIndex) ? -1 : 1,
             slideDistance,
-            direction;
+            activeDotNr;
 
         stopSlideshow();
 
-        if (nextSlide === -1 || (nextSlide !== 0 && Math.abs(nextSlide) % nrOfSlides === 0)) {
-            offsetCount++;
+        if (relative) {
+            var currPos = getCurrentPosition(),
+                currIndex = Math.ceil(currPos / slider.width), // Get slideIndex based on slider position when setPosition() is invoked
+                offsetCount = Math.ceil(currIndex / nrOfSlides), // Get offset count from base position
+                next = Math.abs(offsetCount * nrOfSlides - nextSlide); // Multiply it with nrOfSlides and subtract target slide to get the correct position
+            
+            if (currPos > 0) next *= -1;
         }
 
         slideDistance = next * slider.width * -1;
-        direction = (nextSlide < slideIndex) ? -1 : 1;
         slideIndex = next;
 
         if (o.dots) {
-            setActiveDot(Math.abs(slideIndex % nrOfSlides));
-        }
-
-        slide(slideDistance, direction);
-    }
-
-
-
-    function hasReachedCirclePoint(position) {
-        var forward = circlePoints[1],
-            backward = circlePoints[-1];
-
-        if (position < forward.flipPoint) {
-            circle(1);
-        }
-        if (position > backward.flipPoint) {
-            circle(-1);
-        }
-    }
-
-    
-
-    function circle(direction) {
-        var opposite = (direction > 0) ? -1 : 1,
-            dirCircle = circlePoints[direction],
-            oppCircle = circlePoints[opposite];
-
-        oppCircle.flipPoint = dirCircle.flipPoint;
-        oppCircle.slide = dirCircle.slide;
-        oppCircle.toPos = dirCircle.toPos + nrOfSlides * 100 * opposite;
-
-        transform(slider.slides[dirCircle.slide], dirCircle.toPos, '%');
-        dirCircle.flipPoint += slider.width * opposite;
-
-        if (direction === 1) {
-            dirCircle.slide = (dirCircle.slide === nrOfSlides - 1) ? 0 : dirCircle.slide + 1;
-            if (!dirCircle.slide) {
-                dirCircle.toPos += nrOfSlides * 100; 
+            if (slideDistance < 0) {
+                activeDotNr = Math.abs(slideIndex % nrOfSlides);
+            } else {
+                activeDotNr = nrOfSlides - Math.abs(slideIndex % nrOfSlides);
+                if (activeDotNr > nrOfSlides - 1) activeDotNr = 0;
             }
-        } else {
-            dirCircle.slide = (!dirCircle.slide) ? nrOfSlides - 1 : dirCircle.slide - 1;
-            if (dirCircle.slide === nrOfSlides - 1) {
-                dirCircle.toPos -= nrOfSlides * 100; 
-            }
+            setActiveDot(activeDotNr);
         }
+
+        slide(next * slider.width * -1, direction);
     }
 
 
@@ -350,14 +363,15 @@ function HammerSlider(_this, options) {
 
 
 
-    function touch() {
+    function touchInit() {
         var startPos,
             currentSlide;
 
         touchEvents(slideContainer, {
-            mouse: o.mouseDrag
+            mouse: o.mouseDrag,
+            dragThreshold: o.dragThreshold
         }, function(e, direction, phase, distance) {
-            var newPos;
+            var currPos;
 
             function isDir(dir) {
                 return direction === dir;
@@ -375,25 +389,20 @@ function HammerSlider(_this, options) {
 
             if (phase === 'move') {
                 slider.animationFrame = requestAnimationFrame(function() {
-                if (isDir('left') || isDir('right')) {
-                        newPos = startPos + distance;
+                    if (isDir('left') || isDir('right')) {
+                        currPos = startPos + distance;
 
                         if (!o.rewind) {
-                            hasReachedCirclePoint(newPos);
+                            hasReachedCirclePoint(currPos);
                         } else if (!currentSlide && isDir('right') || currentSlide === nrOfSlides - 1 && isDir('left')) {
-                            newPos = startPos + (distance / 2.5);
+                            currPos = startPos + (distance / 2.5);
                         }
-
-                        transform(slideContainer, newPos);
-                }
+                        transform(slideContainer, currPos);
+                    }
                 });
             }
 
             if (phase === 'end') {
-                if (o.mouseDrag) {
-                    removeClass(slideContainer, 'is-dragging');
-                }
-
                 if (Math.abs(distance) > 30) {
                     if (isDir('left')) {
                         (o.rewind && currentSlide === nrOfSlides - 1) ? setPosition(nrOfSlides - 1) : next();
@@ -401,7 +410,11 @@ function HammerSlider(_this, options) {
                         (o.rewind && !currentSlide) ? setPosition(0) : prev();
                     }
                 } else {
-                    setPosition(slideIndex, -1);
+                    setPosition(slideIndex);
+                }
+
+                if (o.mouseDrag) {
+                    removeClass(slideContainer, 'is-dragging');
                 }
             }
         });
@@ -417,8 +430,6 @@ function HammerSlider(_this, options) {
         nrOfSlides = slider.slides.length;
         slider.dots = document.createDocumentFragment();
         prefixedTransform = prefixThis('transform');
-
-        offsetCount = 1;    // PROABABLY UNNECESSARY
 
         if (nrOfSlides < 2) {
             return;
@@ -469,7 +480,7 @@ function HammerSlider(_this, options) {
 
             addEvent(this.slides[i], 'focus', function(e) {
                 stopSlideshow();
-                setPosition(i);
+                setPosition(i, true);
                 _this.scrollLeft = 0;
             }, true);
         });
@@ -494,7 +505,7 @@ function HammerSlider(_this, options) {
             startSlideshow();
         }
 
-        touch();
+        touchInit();
     }
 
 

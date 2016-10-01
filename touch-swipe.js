@@ -5,21 +5,17 @@ function touchEvents(_this, options, callback) {
         preventDefault: true,
         clicksAllowed: true,
         mouse: true,
-        threshold: 50, // Minimum distance to be considered a swipe
-        restraint: 100, // Maximum distance allowed at the same time in perpendicular direction (e.g. if moving horizontally, how much is allowed to move vertically)
-        allowedTime: 200, // Maximum time allowed to travel that distance
+        dragThreshold: 10 // Minimum distance to determine swipe direction
     };
         
-    //merge user options into defaults
+    // Merge user options into defaults
     options && mergeObjects(o, options);
-
 
     var start = {},
         diff = {},
         direction,
-        swipeType,
         eventType,
-        handletouch = callback || function(evt, dir, phase, distance, swipetype) {},
+        touchCallback = callback || function(evt, dir, phase, distance) {},
         support = {
             pointerEvents: !!window.navigator.pointerEnabled,
             msPointerEvents: !!window.navigator.msPointerEnabled
@@ -74,7 +70,8 @@ function touchEvents(_this, options, callback) {
         if (!event) return;
         el.addEventListener(event, func, !!bool);
 
-        return { // Return remove to be able do detach anonymous function later
+        // Return remove to be able do detach anonymous function later
+        return {
             remove: function() {
                 removeEvent(el, event, func, bool);
             }
@@ -107,11 +104,12 @@ function touchEvents(_this, options, callback) {
 
 
     function touchStart(event, type) {
+        direction = '';
+        firstTime = true;
         o.clicksAllowed = true;
         eventType = type;
 
         if (checks[eventType](event)) return;
-
 
         if (preventDefault && eventType) preventDefault(event);
 
@@ -125,54 +123,52 @@ function touchEvents(_this, options, callback) {
             time: new Date().getTime()
         };
 
-        diff = {
-            X: 0, 
-            Y: 0, 
-            time: 0
-        };
-        handletouch(event, 'none', 'start', 0, 'none');
+        for (var i in diff) {
+            diff[i] = 0;
+        }
+        touchCallback(event, 'none', 'start', 0);
     }
 
-
+    var firstTime = true,
+        axis;
 
     function touchMove(event) {
         var distance;
         getDiff(event);
 
-        if (Math.abs(diff.X) > Math.abs(diff.Y)) {
-            direction = (diff.X < 0) ? 'left' : 'right';
-            distance = diff.X;
-        } else {
-            direction = (diff.Y < 0) ? 'up' : 'down';
-            distance = diff.Y;
+        if (firstTime) {
+            if (o.dragThreshold < Math.abs(diff.X)) {
+                firstTime = false;
+                axis = 'X';
+            } else if (o.dragThreshold < Math.abs(diff.Y)) {
+                firstTime = false;
+                axis = 'Y';
+            }
         }
 
-        if (preventDefault) preventDefault(event);
-
-        handletouch(event, direction, 'move', distance, 'none');
+        if (!firstTime) {
+            if (axis === 'X') {
+                direction = (diff.X < 0) ? 'left' : 'right';
+                distance = diff.X;
+                if (preventDefault) preventDefault(event);
+            } else if (axis === 'Y') {
+                direction = (diff.Y < 0) ? 'up' : 'down';
+                distance = diff.Y;
+            }
+        }
+        touchCallback(event, direction, 'move', distance);
     }
 
 
 
     function touchEnd(event) {
-        if ((new Date().getTime() - start.time) <= o.allowedTime) {
-            if (Math.abs(diff.X) >= o.threshold && Math.abs(diff.Y) <= o.restraint) {
-                swipeType = direction;
-            }
-            else if (Math.abs(diff.Y) >= o.threshold && Math.abs(diff.X) <= o.restraint) {
-                swipeType = direction;
-            }
-        }
-
         !o.clicksAllowed && event.target && event.target.blur && event.target.blur();
 
         removeEvent(document, events[eventType][1], touchMove);
         removeEvent(document, events[eventType][2], touchEnd);
         removeEvent(document, events[eventType][3], touchEnd);
 
-        handletouch(event, direction, 'end', (direction === 'left' || direction === 'right') ? diff.X : diff.Y, (swipeType ? swipeType : 'none'));
-        direction = '';
-        swipeType = '';
+        touchCallback(event, direction, 'end', (direction === 'left' || direction === 'right') ? diff.X : diff.Y);
     }
 
 
@@ -190,7 +186,7 @@ function touchEvents(_this, options, callback) {
         }
 
         addEvent(_this, 'click', function(event) { // No clicking during touch
-            o.clicksAllowed ? handletouch(event) : preventDefault(event);
+            o.clicksAllowed ? touchCallback(event) : preventDefault(event);
         });
     }
 
