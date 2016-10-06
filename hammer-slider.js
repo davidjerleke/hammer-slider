@@ -50,7 +50,6 @@ function HammerSlider(_this, options) {
     'use strict';
 
     var slider = {},
-        slideContainer,
         slideIndex,
         dotWrap,
         nrOfSlides,
@@ -137,7 +136,7 @@ function HammerSlider(_this, options) {
 
 
     function getCurrentPosition() {
-        var transform = window.getComputedStyle(slideContainer, null).getPropertyValue(prefixedTransform),
+        var transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform),
             matrixIndex = transform.match('3d') ? 12 : 4;   // 12 is for IE and 4 for other browsers
 
         return parseInt(transform.split(',')[matrixIndex]);
@@ -183,27 +182,25 @@ function HammerSlider(_this, options) {
             this.slides[i].style.width = slider.width + 'px';
         });
 
-        slideContainer.style.width = nrOfSlides * slider.width + 'px';
-        transform(slideContainer, pos * slider.width * -1);
+        slider.container.style.width = nrOfSlides * slider.width + 'px';
+        transform(slider.container, pos * slider.width * -1);
     }
 
 
 
     function hasReachedCirclePoint(position) {
-        var forward = circlePoints[1],
-            backward = circlePoints[-1];
+        var forwardFlip = circlePoints[1].flipPoint,
+            backwardFlip = circlePoints[-1].flipPoint;
 
-        if (position < forward.flipPoint) {
-            circle(1);
-        }
-        if (position > backward.flipPoint) {
-            circle(-1);
-        }
+        // Return direction if flip point for forward or backward has passed
+        return (position < forwardFlip) ? 1 : (position > backwardFlip) ? -1 : false;
     }
 
 
 
     function circle(direction) {
+        if (!direction) return;
+
         var opposite = (direction > 0) ? -1 : 1,
             currCircle = circlePoints[direction];
 
@@ -231,21 +228,31 @@ function HammerSlider(_this, options) {
 
 
 
-    function move(direction) {
+    function getNextSlideNr(direction) {
         var nextSlide = slideIndex + direction;
         
         if (o.rewind) {
             if (direction === 1) {
                 if (nextSlide === nrOfSlides) {
-                    nextSlide = 0;
+                    return 0;
                 }
             } else {
                 if (nextSlide < 0) {
-                    nextSlide = nrOfSlides - 1;
+                    return nrOfSlides - 1;
                 }
             }
         }
-        setPosition(nextSlide);
+        return nextSlide;
+    }
+
+
+
+    function getActiveSlideNr(pos) {
+        var position = pos ? pos : getCurrentPosition(),
+            relativeIndex = Math.abs(slideIndex % nrOfSlides),
+            activeSlide = (position < 0) ? relativeIndex : nrOfSlides - relativeIndex;
+
+        return (activeSlide > nrOfSlides - 1) ? 0 : activeSlide;
     }
 
 
@@ -253,8 +260,7 @@ function HammerSlider(_this, options) {
     function setPosition(nextSlide, relative) {
         var next = nextSlide,
             direction = (nextSlide < slideIndex) ? -1 : 1,
-            slideDistance,
-            activeDotNr;
+            slideDistance;
 
         stopSlideshow();
 
@@ -271,19 +277,15 @@ function HammerSlider(_this, options) {
         slideIndex = next;
 
         if (o.dots) {
-            var relativeIndex = Math.abs(slideIndex % nrOfSlides);
-            activeDotNr = (slideDistance < 0) ? relativeIndex : nrOfSlides - relativeIndex;
-            
-            if (activeDotNr > nrOfSlides - 1) activeDotNr = 0;
-            setActiveDot(activeDotNr);
+            setActiveDot(getActiveSlideNr(slideDistance));
         }
 
-        slide(next * slider.width * -1, direction);
+        slide(slideDistance);
     }
 
 
 
-    function slide(slideDistance, direction) {
+    function slide(slideDistance) {
         var currPos = getCurrentPosition(),
             start = currPos,
             change = slideDistance - start,
@@ -300,14 +302,14 @@ function HammerSlider(_this, options) {
                 }
             } else {
                 if (!o.rewind) {
-                    hasReachedCirclePoint(currPos);
+                    circle(hasReachedCirclePoint(currPos));
                 }
                 currentTime += increment;
                 currPos = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
-                transform(slideContainer, currPos);
+                transform(slider.container, currPos);
                 slider.animationFrame = requestAnimationFrame(animate);
             }
-        }
+        };
         slider.animationFrame = requestAnimationFrame(animate);
     }
 
@@ -334,13 +336,13 @@ function HammerSlider(_this, options) {
 
 
     function next() {
-        move(1);
+        setPosition(getNextSlideNr(1));
     }
 
 
 
     function prev() {
-        move(-1);
+        setPosition(getNextSlideNr(-1));
     }
 
 
@@ -369,7 +371,7 @@ function HammerSlider(_this, options) {
         var startPos,
             currentSlide;
 
-        touchEvents(slideContainer, {
+        touchEvents(slider.container, {
             mouse: o.mouseDrag,
             dragThreshold: o.dragThreshold
         }, function(e, direction, phase, distance) {
@@ -385,7 +387,7 @@ function HammerSlider(_this, options) {
                 currentSlide = slideIndex % nrOfSlides;
 
                 // Add drag class
-                addClass(slideContainer, 'is-dragging');
+                addClass(slider.container, 'is-dragging');
             }
 
             if (phase === 'move') {
@@ -394,11 +396,11 @@ function HammerSlider(_this, options) {
                         currPos = startPos + distance;
 
                         if (!o.rewind) {
-                            hasReachedCirclePoint(currPos);
+                            circle(hasReachedCirclePoint(currPos));
                         } else if (!currentSlide && isDir('right') || currentSlide === nrOfSlides - 1 && isDir('left')) {
                             currPos = startPos + (distance / 2.5);
                         }
-                        transform(slideContainer, currPos);
+                        transform(slider.container, currPos);
                     }
                 });
             }
@@ -415,7 +417,7 @@ function HammerSlider(_this, options) {
                 }
 
                 // Remove drag class
-                removeClass(slideContainer, 'is-dragging');
+                removeClass(slider.container, 'is-dragging');
             }
         });
     }
@@ -426,8 +428,8 @@ function HammerSlider(_this, options) {
         // Merge user options into defaults
         options && mergeObjects(o, options);
 
-        slideContainer = selectEl(_this, o.containerSelector);
-        slider.slides = selectEl(slideContainer, o.slideSelector, true);
+        slider.container = selectEl(_this, o.containerSelector);
+        slider.slides = selectEl(slider.container, o.slideSelector, true);
         nrOfSlides = slider.slides.length;
         slider.dots = document.createDocumentFragment();
         prefixedTransform = prefixThis('transform');
@@ -444,9 +446,9 @@ function HammerSlider(_this, options) {
             Set TABINDEX to -1 for clones.
         */
         if (!o.rewind && nrOfSlides === 2) {
-            slideContainer.appendChild(slider.slides[0].cloneNode(1));
-            slideContainer.appendChild(slider.slides[nrOfSlides - 1].cloneNode(1));
-            slider.slides = selectEl(slideContainer, o.slideSelector, true);
+            slider.container.appendChild(slider.slides[0].cloneNode(1));
+            slider.container.appendChild(slider.slides[nrOfSlides - 1].cloneNode(1));
+            slider.slides = selectEl(slider.container, o.slideSelector, true);
             nrOfSlides += 2;
         }
 
@@ -499,7 +501,7 @@ function HammerSlider(_this, options) {
         }
 
         if (o.mouseDrag) {
-            addClass(slideContainer, 'mouse-drag-enabled');
+            addClass(slider.container, 'mouse-drag-enabled');
         }
 
         if (o.slideShow) {
@@ -520,6 +522,7 @@ function HammerSlider(_this, options) {
         prev: prev,
         stop: stopSlideshow,
         start: startSlideshow,
-        resize: onWidthChange
+        resize: onWidthChange,
+        activeSlideNr: getActiveSlideNr
     };
 }

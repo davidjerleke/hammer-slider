@@ -107,6 +107,11 @@
 			<button class="c-slider__btn c-slider__btn--left" id="slideleft"></button>
 			<button class="c-slider__btn c-slider__btn--right" id="slideright"></button>
 		</div>
+
+
+		<button id="activeSlide">
+			Get active slide number
+		</button>
 		
 		<script type="text/javascript" src="touch-swipe.js"></script>
 		<script type="text/javascript" src="hammer-slider.js"></script>
@@ -133,6 +138,9 @@
 
 			document.getElementById('slideright').addEventListener('click', slider.next, false);
 			document.getElementById('slideleft').addEventListener('click', slider.prev, false);
+			document.getElementById('activeSlide').addEventListener('click', function() {
+				console.log(slider.activeSlideNr());
+			}, false);
 
 			document.addEventListener('keyup', function(e) {
 				if (e.which === 39) {
