@@ -28,10 +28,6 @@
 /*
     TO FIX
     ------
-    *   Slider stops after first slide if 
-        stop after interaction is true and
-        nothing is touched.
-
     *   Add flick feature for fast swipes 
         that moves multiple slides.
 
@@ -91,18 +87,18 @@ function HammerSlider(_this, options) {
 
 
     function addEvent(el, event, func, bool) {
-        el.addEventListener(event, func, !!bool);
+        el && el.addEventListener(event, func, !!bool);
     }
 
 
 
     function addClass(el, className) {
-        el.classList.add(className);
+        el && el.classList.add(className);
     }
 
 
     function removeClass(el, className) {
-        el.classList.remove(className);
+        el && el.classList.remove(className);
     }
 
 
@@ -159,23 +155,19 @@ function HammerSlider(_this, options) {
             circlePoints['-1'] = {
                 slide: (pos === nrOfSlides - 1) ? 0 : (!pos) ? nrOfSlides - 2 : nrOfSlides - 1,
                 flipPoint: (pos * slider.width * -1) + slider.width / 2,
-                toPos: (pos === nrOfSlides - 1) ? 0 : nrOfSlides * 100 * -1,
+                toPos: (pos === nrOfSlides - 1) ? 0 : nrOfSlides * 100 * -1
             };
         }
 
         loopSlides(function(i) {
-            var slidePosition;
+            var slidePosition = 0;
 
             if (!o.rewind) {
                 if (!i && pos === nrOfSlides - 1) {
                     slidePosition = nrOfSlides * 100;
                 } else if (i === nrOfSlides - 1 && !pos) {
                     slidePosition = nrOfSlides * -1 * 100;
-                } else {
-                    slidePosition = 0;
                 }
-            } else {
-                slidePosition = 0;
             }
 
             transform(this.slides[i], slidePosition, '%');
@@ -184,6 +176,10 @@ function HammerSlider(_this, options) {
 
         slider.container.style.width = nrOfSlides * slider.width + 'px';
         transform(slider.container, pos * slider.width * -1);
+
+        if (o.dots) {
+            setActiveDot(pos);
+        }
     }
 
 
@@ -216,12 +212,12 @@ function HammerSlider(_this, options) {
         if (direction === 1) {
             currCircle.slide = (currCircle.slide === nrOfSlides - 1) ? 0 : currCircle.slide + 1;
             if (!currCircle.slide) {
-                currCircle.toPos += nrOfSlides * 100; 
+                currCircle.toPos += nrOfSlides * 100;
             }
         } else {
             currCircle.slide = (!currCircle.slide) ? nrOfSlides - 1 : currCircle.slide - 1;
             if (currCircle.slide === nrOfSlides - 1) {
-                currCircle.toPos -= nrOfSlides * 100; 
+                currCircle.toPos -= nrOfSlides * 100;
             }
         }
     }
@@ -248,16 +244,15 @@ function HammerSlider(_this, options) {
 
 
     function getActiveSlideNr(pos) {
-        var position = pos ? pos : getCurrentPosition(),
-            relativeIndex = Math.abs(slideIndex % nrOfSlides),
-            activeSlide = (position < 0) ? relativeIndex : nrOfSlides - relativeIndex;
+        var relativeIndex = Math.abs(slideIndex % nrOfSlides),
+            activeSlide = ((pos || getCurrentPosition()) < 0) ? relativeIndex : nrOfSlides - relativeIndex;
 
         return (activeSlide > nrOfSlides - 1) ? 0 : activeSlide;
     }
 
 
 
-    function setPosition(nextSlide, relative) {
+    function setPosition(nextSlide, relative, autoSliding) {
         var next = nextSlide,
             direction = (nextSlide < slideIndex) ? -1 : 1,
             slideDistance;
@@ -280,12 +275,12 @@ function HammerSlider(_this, options) {
             setActiveDot(getActiveSlideNr(slideDistance));
         }
 
-        slide(slideDistance);
+        slide(slideDistance, autoSliding);
     }
 
 
 
-    function slide(slideDistance) {
+    function slide(slideDistance, autoSliding) {
         var currPos = getCurrentPosition(),
             start = currPos,
             change = slideDistance - start,
@@ -297,15 +292,13 @@ function HammerSlider(_this, options) {
                 if (slideIndex % nrOfSlides === o.startSlide) {
                     resetSlider();
                 }
-                if (o.slideShow && !o.stopAfterInteraction) {
-                    startSlideshow();
-                }
+                shouldResumeSlideshow(autoSliding);
             } else {
                 if (!o.rewind) {
                     circle(hasReachedCirclePoint(currPos));
                 }
                 currentTime += increment;
-                currPos = Math.easeOutQuad(currentTime, start, change, o.slideSpeed);
+                currPos = parseInt(Math.easeOutQuad(currentTime, start, change, o.slideSpeed));
                 transform(slider.container, currPos);
                 slider.animationFrame = requestAnimationFrame(animate);
             }
@@ -318,12 +311,14 @@ function HammerSlider(_this, options) {
     Math.easeOutQuad = function(t, b, c, d) {
         t /= d;
         return -c * t * (t - 2) + b;
-    };
+    }
 
 
 
     function startSlideshow() {
-        slider.autoTimeOut = setTimeout(next, o.slideInterval);
+        slider.autoTimeOut = setTimeout(function() {
+            setPosition(getNextSlideNr(1), false, true);
+        }, o.slideInterval);
     }
 
 
@@ -331,6 +326,16 @@ function HammerSlider(_this, options) {
     function stopSlideshow() {
         cancelAnimationFrame(slider.animationFrame);
         clearTimeout(slider.autoTimeOut);
+    }
+
+
+
+    function shouldResumeSlideshow(autoSliding) {
+        if (o.slideShow) {
+            if (!o.stopAfterInteraction || autoSliding) {
+                startSlideshow();
+            }
+        }
     }
 
 
@@ -358,11 +363,8 @@ function HammerSlider(_this, options) {
 
     function onWidthChange() {
         stopSlideshow();
-        resetSlider(slideIndex % nrOfSlides);
-
-        if (o.slideShow && !o.stopAfterInteraction) {
-            startSlideshow();
-        }
+        resetSlider(getActiveSlideNr());
+        shouldResumeSlideshow();
     }
 
 
@@ -452,8 +454,6 @@ function HammerSlider(_this, options) {
             nrOfSlides += 2;
         }
 
-        resetSlider(o.startSlide);
-
         loopSlides(function(i) {
             if (o.dots) {
                 var newDot = document.createElement('li');
@@ -488,17 +488,19 @@ function HammerSlider(_this, options) {
             }, true);
         });
 
-        addEvent(window, 'resize', onWidthChange);
-        addEvent(window, 'orientationchange', onWidthChange);
-
         if (o.dots) {
             dotWrap = document.createElement('ul');
             dotWrap.appendChild(slider.dots);
             _this.appendChild(dotWrap);
             slider.dots = dotWrap.children;
             addClass(dotWrap, o.dotWrapClass);
-            addClass(slider.dots[o.startSlide || 0], o.dotActiveClass);
         }
+
+        addEvent(window, 'resize', onWidthChange);
+        addEvent(window, 'orientationchange', onWidthChange);
+
+        resetSlider();
+        touchInit();
 
         if (o.mouseDrag) {
             addClass(slider.container, 'mouse-drag-enabled');
@@ -508,7 +510,7 @@ function HammerSlider(_this, options) {
             startSlideshow();
         }
 
-        touchInit();
+        console.log(Math.ceil(23 / 10) * 10);
     }
 
 
@@ -516,13 +518,18 @@ function HammerSlider(_this, options) {
     setup();
 
 
-
+    // Expose slider API
     return {
+        goTo: function(slideNr) {
+            setPosition(slideNr, true);
+        },
+        reset: function(slideNr) {
+            resetSlider(slideNr);
+        },
         next: next,
         prev: prev,
         stop: stopSlideshow,
         start: startSlideshow,
-        resize: onWidthChange,
         activeSlideNr: getActiveSlideNr
     };
 }

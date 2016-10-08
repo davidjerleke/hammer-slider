@@ -112,6 +112,13 @@
 		<button id="activeSlide">
 			Get active slide number
 		</button>
+		<button id="goTo">
+			Go to slide nr 1
+		</button>
+		<button id="showSlider">
+			Show Slider
+		</button>
+		
 		
 		<script type="text/javascript" src="touch-swipe.js"></script>
 		<script type="text/javascript" src="hammer-slider.js"></script>
@@ -122,9 +129,9 @@
 			var sliderElement = document.getElementById('slider'),
 				slider = HammerSlider(sliderElement, {
 				slideShow: false,
-				slideInterval: 1000,
-				slideSpeed: 60,	
-				stopAfterInteraction: true,
+				slideInterval: 2000,
+				slideSpeed: 90,
+				stopAfterInteraction: false,
 				dotActiveClass: 'is-active',
 				containerSelector: '.c-slider__container',
 				slideSelector: '.c-slider__slide',
@@ -138,13 +145,26 @@
 
 			document.getElementById('slideright').addEventListener('click', slider.next, false);
 			document.getElementById('slideleft').addEventListener('click', slider.prev, false);
+
 			document.getElementById('activeSlide').addEventListener('click', function() {
 				console.log(slider.activeSlideNr());
 			}, false);
 
+			document.getElementById('goTo').addEventListener('click', function() {
+				slider.goTo(1);
+			}, false)
+
+			document.getElementById('showSlider').addEventListener('click', function() {
+				//sliderElement.style.display = 'block';
+				//slider.reset(4);
+			}, false)
+
+
 			document.addEventListener('keyup', function(e) {
 				if (e.which === 39) {
 					slider.next();
+				} else if (e.which === 37) {
+					slider.prev();
 				}
 			}, false);
 

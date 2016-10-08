@@ -50,6 +50,7 @@ body {
 .c-slider,
 .c-slider__container,
 .c-slider__slide,
+.c-slider__slide *.
 .c-slider__dots {
    -webkit-backface-visibility: hidden;
    -moz-backface-visibility: hidden;
@@ -153,7 +154,7 @@ body {
 	}
 
 		.c-slider__btn:hover {
-			opacity: 1;
+			/*opacity: 1;*/
 		}
 
 		.c-slider__btn--left {
