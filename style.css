@@ -43,14 +43,13 @@ body {
 .c-slider-wrap {
 	position: relative;
 	width: 100%;
-	/*width: 30%;
+	/*width: 20%;
 	margin-left: 30%;*/
 }
 
 .c-slider,
 .c-slider__container,
 .c-slider__slide,
-.c-slider__slide *.
 .c-slider__dots {
    -webkit-backface-visibility: hidden;
    -moz-backface-visibility: hidden;
@@ -62,7 +61,6 @@ body {
 .c-slider {
 	position: relative; 
 	overflow: hidden;
-	
 }
 
 
