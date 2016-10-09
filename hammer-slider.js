@@ -462,7 +462,7 @@ function HammerSlider(_this, options) {
         loopSlides(function(i) {
             this.slides.push(this.container.children[i]);
 
-            if (o.dots && nrOfSlides > 1) {
+            if (o.dots) {
                 var newDot = document.createElement('li');
 
                 (function(dot, nr) {
