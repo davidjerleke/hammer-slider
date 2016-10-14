@@ -53,7 +53,7 @@ function HammerSlider(_this, options) {
         slideIndex = 0,
         nrOfSlides,
         prefixedTransform,
-        h = {}; // Helpers
+        helper = {};
 
     var o = {
         slideShow: false,
@@ -125,7 +125,7 @@ function HammerSlider(_this, options) {
 
 
 
-    function loopSlides(callback) {
+    function forEachSlide(callback) {
         for (var i = 0; i < nrOfSlides; i++) {
             callback.call(slider, i);
         }
@@ -149,26 +149,26 @@ function HammerSlider(_this, options) {
 
         if (!o.rewind) {
             circlePoints['1'] = {
-                slide: (!pos) ? h.lastSlide : 0,
-                flipPoint: (h.isLastSlide(pos)) ? ((pos - 1) * slider.width * -1) + (slider.width / 2) * -1 : (pos * slider.width * -1) + (slider.width / 2) * -1,
-                toPos: (!pos) ? 0 : h.nrSlidesInPercent
+                slide: (!pos) ? helper.lastSlide : 0,
+                flipPoint: (helper.isLastSlide(pos)) ? ((pos - 1) * slider.width * -1) + (slider.width / 2) * -1 : (pos * slider.width * -1) + (slider.width / 2) * -1,
+                toPos: (!pos) ? 0 : helper.nrSlidesInPercent
             };
 
             circlePoints['-1'] = {
-                slide: (h.isLastSlide(pos)) ? 0 : (!pos) ? h.lastSlide - 1 : h.lastSlide,
+                slide: (helper.isLastSlide(pos)) ? 0 : (!pos) ? helper.lastSlide - 1 : helper.lastSlide,
                 flipPoint: (pos * slider.width * -1) + slider.width / 2,
-                toPos: (h.isLastSlide(pos)) ? 0 : h.nrSlidesInPercent * -1
+                toPos: (helper.isLastSlide(pos)) ? 0 : helper.nrSlidesInPercent * -1
             };
         }
 
-        loopSlides(function(i) {
+        forEachSlide(function(i) {
             var slidePosition = 0;
 
             if (!o.rewind) {
-                if (!i && h.isLastSlide(pos)) {
-                    slidePosition = h.nrSlidesInPercent;
-                } else if (h.isLastSlide(i) && !pos) {
-                    slidePosition = h.nrSlidesInPercent * -1;
+                if (!i && helper.isLastSlide(pos)) {
+                    slidePosition = helper.nrSlidesInPercent;
+                } else if (helper.isLastSlide(i) && !pos) {
+                    slidePosition = helper.nrSlidesInPercent * -1;
                 }
             }
             transform(this.slides[i], slidePosition, '%');
@@ -177,10 +177,7 @@ function HammerSlider(_this, options) {
 
         slider.container.style.width = nrOfSlides * slider.width + 'px';
         transform(slider.container, pos * slider.width * -1);
-
-        if (o.dots) {
-            setActiveDot(pos);
-        }
+        setActiveDot(pos);
     }
 
 
@@ -201,45 +198,47 @@ function HammerSlider(_this, options) {
         var opposite = (direction > 0) ? -1 : 1,
             currCircle = circlePoints[direction];
 
+        transform(slider.slides[currCircle.slide], currCircle.toPos, '%');
         mergeObjects(circlePoints[opposite], {
             flipPoint: currCircle.flipPoint,
             slide: currCircle.slide,
-            toPos: currCircle.toPos + h.nrSlidesInPercent * opposite
+            toPos: currCircle.toPos + helper.nrSlidesInPercent * opposite
         });
-
-        transform(slider.slides[currCircle.slide], currCircle.toPos, '%');
         currCircle.flipPoint += slider.width * opposite;
+        
+        if (updateCircleSlide(currCircle, direction)) {
+            currCircle.toPos += helper.nrSlidesInPercent * direction;
+        }
+    }
 
+
+
+    function updateCircleSlide(obj, direction) {
         if (direction === 1) {
-            currCircle.slide = (h.isLastSlide(currCircle.slide)) ? 0 : currCircle.slide + 1;
-            if (!currCircle.slide) {
-                currCircle.toPos += h.nrSlidesInPercent;
-            }
+            obj.slide = (helper.isLastSlide(obj.slide)) ? 0 : obj.slide + 1;
+            return !obj.slide;
         } else {
-            currCircle.slide = (!currCircle.slide) ? h.lastSlide : currCircle.slide - 1;
-            if (h.isLastSlide(currCircle.slide)) {
-                currCircle.toPos -= h.nrSlidesInPercent;
-            }
+            obj.slide = (!obj.slide) ? helper.lastSlide : obj.slide - 1;
+            return helper.isLastSlide(obj.slide);
         }
     }
 
 
 
     function getNextSlide(direction) {
-        var nextSlide = slideIndex + direction;
-        
         if (o.rewind) {
             if (direction === 1) {
-                if (nextSlide === nrOfSlides) {
+                if (helper.isLastSlide(slideIndex)) {
                     return 0;
                 }
             } else {
-                if (nextSlide < 0) {
-                    return h.lastSlide;
+                if (!slideIndex) {
+                    return helper.lastSlide;
                 }
             }
         }
-        return nextSlide;
+
+        return slideIndex + direction;
     }
 
 
@@ -259,7 +258,7 @@ function HammerSlider(_this, options) {
         var relativeIndex = Math.abs(slideIndex % nrOfSlides),
             activeSlide = ((pos || getCurrentPosition()) < 0) ? relativeIndex : nrOfSlides - relativeIndex;
 
-        return (activeSlide > h.lastSlide) ? 0 : activeSlide;
+        return (activeSlide > helper.lastSlide) ? 0 : activeSlide;
     }
 
 
@@ -271,9 +270,7 @@ function HammerSlider(_this, options) {
         stopSlideshow();
         slideIndex = next;
 
-        if (o.dots) {
-            setActiveDot(getActiveSlideNr(slideDistance));
-        }
+        setActiveDot(getActiveSlideNr(slideDistance));
         slide(slideDistance, autoSliding);
     }
 
@@ -330,10 +327,8 @@ function HammerSlider(_this, options) {
 
 
     function shouldResumeSlideshow(autoSliding) {
-        if (o.slideShow) {
-            if (!o.stopAfterInteraction || autoSliding) {
-                startSlideshow();
-            }
+        if (o.slideShow && !o.stopAfterInteraction || autoSliding) {
+            startSlideshow();
         }
     }
 
@@ -352,7 +347,7 @@ function HammerSlider(_this, options) {
 
 
     function setActiveDot(active) {
-        if (o.dotActiveClass) {
+        if (o.dots && o.dotActiveClass) {
             removeClass(selectEl(slider.dotWrap, '.' + o.dotActiveClass), o.dotActiveClass);
             addClass(slider.dots[active], o.dotActiveClass);
         }
@@ -398,7 +393,7 @@ function HammerSlider(_this, options) {
 
                         if (!o.rewind) {
                             circle(hasReachedCirclePoint(currPos));
-                        } else if (!currentSlide && isDir('right') || h.isLastSlide(currentSlide) && isDir('left')) {
+                        } else if (!currentSlide && isDir('right') || helper.isLastSlide(currentSlide) && isDir('left')) {
                             currPos = startPos + (distance / 2.5);
                         }
                         transform(slider.container, currPos);
@@ -409,7 +404,7 @@ function HammerSlider(_this, options) {
             if (phase === 'end') {
                 if (Math.abs(distance) > 30) {
                     if (isDir('left')) {
-                        (o.rewind && h.isLastSlide(currentSlide)) ? setPosition(h.lastSlide) : next();
+                        (o.rewind && helper.isLastSlide(currentSlide)) ? setPosition(helper.lastSlide) : next();
                     } else if (isDir('right')) {
                         (o.rewind && !currentSlide) ? setPosition(0) : prev();
                     }
@@ -452,14 +447,14 @@ function HammerSlider(_this, options) {
 
 
         // Helpers ( MOVE TO A SEPARATE FUNCTION )
-        h.nrSlidesInPercent = nrOfSlides * 100;
-        h.lastSlide = nrOfSlides - 1;
-        h.isLastSlide = function(nr) {
-            return nr === h.lastSlide;
+        helper.nrSlidesInPercent = nrOfSlides * 100;
+        helper.lastSlide = nrOfSlides - 1;
+        helper.isLastSlide = function(nr) {
+            return nr === helper.lastSlide;
         }
 
 
-        loopSlides(function(i) {
+        forEachSlide(function(i) {
             this.slides.push(this.container.children[i]);
 
             if (o.dots) {
@@ -493,7 +488,7 @@ function HammerSlider(_this, options) {
                 this.dots.push(newDot);
 
                 // Add dots to slider
-                if (h.isLastSlide(i)) {
+                if (helper.isLastSlide(i)) {
                     this.dotWrap = document.createElement('ul');
                     this.dotWrap.appendChild(dotFrag);
                     _this.appendChild(this.dotWrap);
@@ -518,13 +513,8 @@ function HammerSlider(_this, options) {
         resetSlider();
         touchInit();
 
-        if (o.mouseDrag) {
-            addClass(slider.container, 'mouse-drag-enabled');
-        }
-
-        if (o.slideShow) {
-            startSlideshow();
-        }
+        o.mouseDrag && addClass(slider.container, 'mouse-drag-enabled');
+        o.slideShow && startSlideshow();
     }
 
 
