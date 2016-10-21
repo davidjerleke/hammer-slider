@@ -15,6 +15,7 @@ function touchEvents(_this, options, callback) {
         diff = {},
         direction,
         eventType,
+        axis,
         touchCallback = callback || function(evt, dir, phase, distance) {},
         support = {
             pointerEvents: !!window.navigator.pointerEnabled,
@@ -69,13 +70,6 @@ function touchEvents(_this, options, callback) {
     function addEvent(el, event, func, bool) {
         if (!event) return;
         el.addEventListener(event, func, !!bool);
-
-        // Return remove to be able do detach anonymous function later
-        return {
-            remove: function() {
-                removeEvent(el, event, func, bool);
-            }
-        };
     }
 
 
@@ -105,7 +99,6 @@ function touchEvents(_this, options, callback) {
 
     function touchStart(event, type) {
         direction = '';
-        firstTime = true;
         o.clicksAllowed = true;
         eventType = type;
 
@@ -123,40 +116,27 @@ function touchEvents(_this, options, callback) {
             time: new Date().getTime()
         };
 
-        for (var i in diff) {
-            diff[i] = 0;
+        for (var key in diff) {
+            diff[key] = 0;
         }
-        touchCallback(event, 'none', 'start', 0);
+        touchCallback(event, 'none', 'start');
     }
 
-    var firstTime = true,
-        axis;
-
     function touchMove(event) {
-        var distance;
         getDiff(event);
 
-        if (firstTime) {
-            if (o.dragThreshold < Math.abs(diff.X)) {
-                firstTime = false;
-                axis = 'X';
-            } else if (o.dragThreshold < Math.abs(diff.Y)) {
-                firstTime = false;
-                axis = 'Y';
-            }
-        }
-
-        if (!firstTime) {
+        if (!axis) {
+            axis = (o.dragThreshold < Math.abs(diff.X)) ? 'X' : (o.dragThreshold < Math.abs(diff.Y)) ? 'Y' : false;
+        } else {
             if (axis === 'X') {
                 direction = (diff.X < 0) ? 'left' : 'right';
-                distance = diff.X;
                 if (preventDefault) preventDefault(event);
             } else if (axis === 'Y') {
                 direction = (diff.Y < 0) ? 'up' : 'down';
-                distance = diff.Y;
             }
         }
-        touchCallback(event, direction, 'move', distance);
+
+        touchCallback(event, direction, 'move', diff);
     }
 
 
@@ -168,7 +148,8 @@ function touchEvents(_this, options, callback) {
         removeEvent(document, events[eventType][2], touchEnd);
         removeEvent(document, events[eventType][3], touchEnd);
 
-        touchCallback(event, direction, 'end', (direction === 'left' || direction === 'right') ? diff.X : diff.Y);
+        touchCallback(event, direction, 'end', diff);
+        axis = false;
     }
 
 

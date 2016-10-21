@@ -67,6 +67,7 @@ body {
 	.c-slider__container {
 		-ms-touch-action: pan-y;
     	touch-action: pan-y;
+    	transform: matrix(0,0,0,0,0,0);
 	}
 
 	.c-slider__container.mouse-drag-enabled .c-slider__slide {

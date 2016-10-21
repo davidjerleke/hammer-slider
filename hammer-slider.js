@@ -150,14 +150,14 @@ function HammerSlider(_this, options) {
         if (!o.rewind) {
             circlePoints['1'] = {
                 slide: (!pos) ? helper.lastSlide : 0,
-                flipPoint: (helper.isLastSlide(pos)) ? ((pos - 1) * slider.width * -1) + (slider.width / 2) * -1 : (pos * slider.width * -1) + (slider.width / 2) * -1,
+                flipPoint: (helper.isLastSlide(pos) ? pos - 1 : pos) * slider.width * -1 + slider.width * -0.5,
                 toPos: (!pos) ? 0 : helper.nrSlidesInPercent
             };
 
             circlePoints['-1'] = {
-                slide: (helper.isLastSlide(pos)) ? 0 : (!pos) ? helper.lastSlide - 1 : helper.lastSlide,
+                slide: helper.isLastSlide(pos) ? 0 : !pos ? helper.lastSlide - 1 : helper.lastSlide,
                 flipPoint: (pos * slider.width * -1) + slider.width / 2,
-                toPos: (helper.isLastSlide(pos)) ? 0 : helper.nrSlidesInPercent * -1
+                toPos: helper.isLastSlide(pos) ? 0 : helper.nrSlidesInPercent * -1
             };
         }
 
@@ -370,7 +370,7 @@ function HammerSlider(_this, options) {
         touchEvents(slider.container, {
             mouse: o.mouseDrag,
             dragThreshold: o.dragThreshold
-        }, function(e, direction, phase, distance) {
+        }, function(e, direction, phase, diff) {
             var currPos;
 
             function isDir(dir) {
@@ -386,31 +386,30 @@ function HammerSlider(_this, options) {
                 addClass(slider.container, 'is-dragging');
             }
 
-            if (phase === 'move') {
+            if (phase === 'move' && (isDir('left') || isDir('right'))) {
                 slider.animationFrame = requestAnimationFrame(function() {
-                    if (isDir('left') || isDir('right')) {
-                        currPos = startPos + distance;
+                    currPos = startPos + diff.X;
 
-                        if (!o.rewind) {
-                            circle(hasReachedCirclePoint(currPos));
-                        } else if (!currentSlide && isDir('right') || helper.isLastSlide(currentSlide) && isDir('left')) {
-                            currPos = startPos + (distance / 2.5);
-                        }
-                        transform(slider.container, currPos);
+                    if (!o.rewind) {
+                        circle(hasReachedCirclePoint(currPos));
+                    } else if (!currentSlide && isDir('right') || helper.isLastSlide(currentSlide) && isDir('left')) {
+                        currPos = startPos + (diff.X / 2.5);
                     }
+                    transform(slider.container, currPos);
                 });
             }
 
             if (phase === 'end') {
-                if (Math.abs(distance) > 30) {
+                var targetSlide = slideIndex;
+
+                if (Math.abs(diff.X) > 30) {
                     if (isDir('left')) {
-                        (o.rewind && helper.isLastSlide(currentSlide)) ? setPosition(helper.lastSlide) : next();
+                        targetSlide = (o.rewind && helper.isLastSlide(currentSlide)) ? helper.lastSlide : getNextSlide(1);
                     } else if (isDir('right')) {
-                        (o.rewind && !currentSlide) ? setPosition(0) : prev();
+                        targetSlide = (o.rewind && !currentSlide) ? 0 : getNextSlide(-1);
                     }
-                } else {
-                    setPosition(slideIndex);
                 }
+                setPosition(targetSlide);
 
                 // Remove drag class
                 removeClass(slider.container, 'is-dragging');
@@ -476,7 +475,7 @@ function HammerSlider(_this, options) {
 
                     // Don't remove outlines when tabbing and Enter
                     // key is used to navigate with dots.
-                    addEvent(dot, 'keyup', function(e) {    
+                    addEvent(dot, 'keyup', function(e) {
                         if (e.keyCode === 13) {
                             setPosition(nr, true);
                         }
