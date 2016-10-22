@@ -28,12 +28,12 @@
 /*
     TO FIX
     ------
-    *   Add flick feature for fast swipes 
-        that moves multiple slides.
-
     *   Slidespeed only takes even numbers of 
         10. If given number is not even, make
         it so. Math.ceil(o.slideSpeed / 10) * 10
+
+    *   Custom slideSpeed should be enabled for touch
+        and slideTo API function    
 
     *   Rewrite to ES6.
 
@@ -45,6 +45,7 @@
 function HammerSlider(_this, options) {
     'use strict';
 
+    // Main declarations
     var slider = {
             slides: [],
             dots: []
@@ -53,21 +54,37 @@ function HammerSlider(_this, options) {
         slideIndex = 0,
         nrOfSlides,
         prefixedTransform,
-        helper = {};
+        helper;
 
+    // Default options
     var o = {
         slideShow: false,
         slideInterval: false,
         slideSpeed: 50,
         startSlide: 0,
+        dragThreshold: 10,
+        minimumDragDistance: 30,
         stopAfterInteraction: true,
         rewind: false,
         dots: false,
-        containerSelector: undefined,
-        dotWrapClass: undefined,
-        dotActiveClass: undefined,
         mouseDrag: false,
-        dragThreshold: 10
+        dotContainer: undefined,
+        slideContainer: undefined,
+        beforeSlideChange: undefined,
+        afterSlideChange: undefined,
+        onSetup: undefined,
+        cssPrefix: 'c-slider'
+    };
+
+    // Merge user options into defaults
+    options && mergeObjects(o, options);
+
+    var classes = {
+        dotWrap: o.cssPrefix + '__dots',
+        dotItem: o.cssPrefix + '__dot',
+        dotActiveClass: o.cssPrefix + '__dot--is-active',
+        dragging: o.cssPrefix + '__container--is-dragging',
+        mouseDrag: o.cssPrefix + '__container--mouse-drag-enabled'
     };
 
 
@@ -78,12 +95,6 @@ function HammerSlider(_this, options) {
                 target[key] = source[key];
             }
         }
-    }
-
-
-
-    function selectEl(element, selector, all) {
-        return element['querySelector' + (all ? 'All' : '')](selector);
     }
 
 
@@ -126,6 +137,8 @@ function HammerSlider(_this, options) {
 
 
     function forEachSlide(callback) {
+        // Pass slider object as context for "this" in loop since looping
+        // slides will involve making changes to slider elements of some sort.
         for (var i = 0; i < nrOfSlides; i++) {
             callback.call(slider, i);
         }
@@ -134,10 +147,21 @@ function HammerSlider(_this, options) {
 
 
     function getCurrentPosition() {
-        var transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform),
-            matrixIndex = transform.match('3d') ? 12 : 4;   // 12 is for IE and 4 for other browsers
+        var transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform);
+        // matrixIndex = transform.match('3d') ? 12 : 4; // Should be used for translate 3D
+        return parseInt(transform.split(',')[4]);
+    }
 
-        return parseInt(transform.split(',')[matrixIndex]);
+
+
+    function makeHelpers() {
+        return {
+            nrSlidesInPercent: nrOfSlides * 100,
+            lastSlide: nrOfSlides - 1,
+            isLastSlide: function(nr) {
+                return nr === this.lastSlide;
+            }
+        };
     }
 
 
@@ -148,6 +172,10 @@ function HammerSlider(_this, options) {
         slider.width = _this.offsetWidth;
 
         if (!o.rewind) {
+            // Circle points will be the breakpoints for slide flipping used to make
+            // an infinite carousel effect. Flip points will always be set halfway 
+            // through a slide transition to get rid of flicking when slide speed is 
+            // not fast enough to hide it.
             circlePoints['1'] = {
                 slide: (!pos) ? helper.lastSlide : 0,
                 flipPoint: (helper.isLastSlide(pos) ? pos - 1 : pos) * slider.width * -1 + slider.width * -0.5,
@@ -165,6 +193,8 @@ function HammerSlider(_this, options) {
             var slidePosition = 0;
 
             if (!o.rewind) {
+                // Position slides so there's always one slide before current
+                // and one after for the infinite sliding effect.
                 if (!i && helper.isLastSlide(pos)) {
                     slidePosition = helper.nrSlidesInPercent;
                 } else if (helper.isLastSlide(i) && !pos) {
@@ -175,7 +205,9 @@ function HammerSlider(_this, options) {
             this.slides[i].style.width = this.width + 'px';
         });
 
+        // Set container width to fit floated slides
         slider.container.style.width = nrOfSlides * slider.width + 'px';
+        // Set slider position to start slide
         transform(slider.container, pos * slider.width * -1);
         setActiveDot(pos);
     }
@@ -186,7 +218,7 @@ function HammerSlider(_this, options) {
         var forwardFlip = circlePoints[1].flipPoint,
             backwardFlip = circlePoints[-1].flipPoint;
 
-        // Return direction if flip point for forward or backward has passed
+        // Return direction if forward or backward flip point has passed
         return (position < forwardFlip) ? 1 : (position > backwardFlip) ? -1 : false;
     }
 
@@ -226,6 +258,8 @@ function HammerSlider(_this, options) {
 
 
     function getNextSlide(direction) {
+        // Change direction if rewind is true and it's the first
+        // slide moving backward or last slide moving forward.
         if (o.rewind) {
             if (direction === 1) {
                 if (helper.isLastSlide(slideIndex)) {
@@ -244,10 +278,13 @@ function HammerSlider(_this, options) {
 
 
     function getRelativeSlide(slideNr) {
+        // To get next slide number relative to current position the offset from
+        // base position needs to be calculated, since flipping slides causes offsets
+        // when infinite carousel effect is used.
         var currPos = getCurrentPosition(),
-            currIndex = Math.ceil(currPos / slider.width), // Get slideIndex based on slider position when setPosition() is invoked
-            offsetCount = Math.ceil(currIndex / nrOfSlides), // Get offset count from base position
-            next = Math.abs(offsetCount * nrOfSlides - slideNr); // Multiply it with nrOfSlides and subtract target slide to get the correct position
+            currIndex = Math.ceil(currPos / slider.width),
+            offsetCount = Math.ceil(currIndex / nrOfSlides),
+            next = Math.abs(offsetCount * nrOfSlides - slideNr);
             
          return (currPos > 0) ? next * -1 : next;
     }
@@ -255,6 +292,8 @@ function HammerSlider(_this, options) {
 
 
     function getActiveSlideNr(pos) {
+        // Active slide number can be fetched either in advance by providing 
+        // target distance as parameter or based on current actual position.
         var relativeIndex = Math.abs(slideIndex % nrOfSlides),
             activeSlide = ((pos || getCurrentPosition()) < 0) ? relativeIndex : nrOfSlides - relativeIndex;
 
@@ -263,20 +302,27 @@ function HammerSlider(_this, options) {
 
 
 
-    function setPosition(nextSlide, relative, autoSliding) {
+    function setPosition(nextSlide, relative, autoSlide) {
         var next = (relative) ? getRelativeSlide(nextSlide) : nextSlide,
-            slideDistance = next * slider.width * -1;
+            slideDistance = next * slider.width * -1,
+            activeSlide;
 
+        // Stop slideshow whenever interaction  
+        // has occured before taking action.
         stopSlideshow();
         slideIndex = next;
+        activeSlide = getActiveSlideNr(slideDistance);
 
-        setActiveDot(getActiveSlideNr(slideDistance));
-        slide(slideDistance, autoSliding);
+        // API Callback
+        o.beforeSlideChange && o.beforeSlideChange(activeSlide);
+
+        setActiveDot(activeSlide);
+        slide(slideDistance, autoSlide);
     }
 
 
 
-    function slide(slideDistance, autoSliding) {
+    function slide(slideDistance, autoSlide) {
         var currPos = getCurrentPosition(),
             start = currPos,
             change = slideDistance - start,
@@ -288,7 +334,10 @@ function HammerSlider(_this, options) {
                 if (slideIndex % nrOfSlides === o.startSlide) {
                     resetSlider();
                 }
-                shouldResumeSlideshow(autoSliding);
+                shouldResumeSlideshow(autoSlide);
+
+                // API Callback
+                o.afterSlideChange && o.afterSlideChange(getActiveSlideNr());
             } else {
                 if (!o.rewind) {
                     circle(hasReachedCirclePoint(currPos));
@@ -296,9 +345,12 @@ function HammerSlider(_this, options) {
                 currentTime += increment;
                 currPos = parseInt(Math.easeOutQuad(currentTime, start, change, o.slideSpeed));
                 transform(slider.container, currPos);
+
+                // Recursively call RAF until slide distance is met
                 slider.animationFrame = requestAnimationFrame(animate);
             }
         };
+        // Init RAF recursion
         slider.animationFrame = requestAnimationFrame(animate);
     }
 
@@ -326,8 +378,8 @@ function HammerSlider(_this, options) {
 
 
 
-    function shouldResumeSlideshow(autoSliding) {
-        if (o.slideShow && !o.stopAfterInteraction || autoSliding) {
+    function shouldResumeSlideshow(autoSlide) {
+        if (o.slideShow && !o.stopAfterInteraction || autoSlide) {
             startSlideshow();
         }
     }
@@ -347,9 +399,9 @@ function HammerSlider(_this, options) {
 
 
     function setActiveDot(active) {
-        if (o.dots && o.dotActiveClass) {
-            removeClass(selectEl(slider.dotWrap, '.' + o.dotActiveClass), o.dotActiveClass);
-            addClass(slider.dots[active], o.dotActiveClass);
+        if (o.dots && classes.dotActiveClass) {
+            removeClass(slider.dotWrap.querySelector('.' + classes.dotActiveClass), classes.dotActiveClass);
+            addClass(slider.dots[active], classes.dotActiveClass);
         }
     }
 
@@ -383,16 +435,19 @@ function HammerSlider(_this, options) {
                 currentSlide = slideIndex % nrOfSlides;
 
                 // Add drag class
-                addClass(slider.container, 'is-dragging');
+                addClass(slider.container, classes.dragging);
             }
 
             if (phase === 'move' && (isDir('left') || isDir('right'))) {
                 slider.animationFrame = requestAnimationFrame(function() {
+                    // Calculate changed position
                     currPos = startPos + diff.X;
 
                     if (!o.rewind) {
                         circle(hasReachedCirclePoint(currPos));
                     } else if (!currentSlide && isDir('right') || helper.isLastSlide(currentSlide) && isDir('left')) {
+                        // Resist dragging if it's first slide 
+                        // or last and if rewind is true
                         currPos = startPos + (diff.X / 2.5);
                     }
                     transform(slider.container, currPos);
@@ -402,7 +457,8 @@ function HammerSlider(_this, options) {
             if (phase === 'end') {
                 var targetSlide = slideIndex;
 
-                if (Math.abs(diff.X) > 30) {
+                // Only set new target slide if drag exceeds minimum drag distance
+                if (Math.abs(diff.X) > o.minimumDragDistance) {
                     if (isDir('left')) {
                         targetSlide = (o.rewind && helper.isLastSlide(currentSlide)) ? helper.lastSlide : getNextSlide(1);
                     } else if (isDir('right')) {
@@ -412,7 +468,7 @@ function HammerSlider(_this, options) {
                 setPosition(targetSlide);
 
                 // Remove drag class
-                removeClass(slider.container, 'is-dragging');
+                removeClass(slider.container, classes.dragging);
             }
         });
     }
@@ -421,11 +477,18 @@ function HammerSlider(_this, options) {
 
     function setup() {
         var dotFrag = document.createDocumentFragment();
-        slider.container = selectEl(_this, o.containerSelector);
+        slider.container = o.slideContainer || _this.children[0];
         nrOfSlides = slider.container.children.length;
         prefixedTransform = getSupport('transform');
 
-        if (nrOfSlides < 2 || !prefixedTransform) {
+        // Only set widths if one slide is provided
+        // Remove hardware acceleration if transform is supported
+        if (nrOfSlides <= 1 || !prefixedTransform) {
+            forEachSlide(function(i) {
+                this.container.children[i].style.width = '100%';
+                this.container.style.width = nrOfSlides * 100 + '%';
+            });
+            prefixedTransform && transform(slider.container, 0);
             return;
         }
 
@@ -434,34 +497,37 @@ function HammerSlider(_this, options) {
             ------------
             If only 2 slides create clones 
             for the carousel effect to work.
-            Set TABINDEX to -1 for clones.
         */
-        /*
         if (!o.rewind && nrOfSlides === 2) {
-            slider.container.appendChild(slider.slides[0].cloneNode(1));
-            slider.container.appendChild(slider.slides[nrOfSlides - 1].cloneNode(1));
+            var container = slider.container;
+            container.appendChild(container.children[0].cloneNode(1));
+            container.appendChild(container.children[nrOfSlides - 1].cloneNode(1));
             nrOfSlides += 2;
         }
-        */
 
-
-        // Helpers ( MOVE TO A SEPARATE FUNCTION )
-        helper.nrSlidesInPercent = nrOfSlides * 100;
-        helper.lastSlide = nrOfSlides - 1;
-        helper.isLastSlide = function(nr) {
-            return nr === helper.lastSlide;
-        }
-
+        // Make utilities
+        helper = makeHelpers();
+        o.slideSpeed = (o.slideSpeed < 2) ? 2 : Math.ceil(o.slideSpeed / 10) * 10;
 
         forEachSlide(function(i) {
+            // Cache slides in array
             this.slides.push(this.container.children[i]);
+
+            // Prevent slider from breaking when tabbing during slide
+            // transition which alters scrollLeft. Set scrollLeft to
+            // 0 and slide to focused slide instead.
+            addEvent(this.slides[i], 'focus', function(e) {
+                stopSlideshow();
+                _this.scrollLeft = 0;
+                setPosition(i, true);
+            }, true);
 
             if (o.dots) {
                 var newDot = document.createElement('li');
 
                 (function(dot, nr) {
-
                     // Make dots tabbable with "tabindex"
+                    addClass(dot, classes.dotItem);
                     dot.setAttribute('tabindex', 0);
                     dot.setAttribute('role', 'button');
                     
@@ -486,23 +552,17 @@ function HammerSlider(_this, options) {
 
                 this.dots.push(newDot);
 
-                // Add dots to slider
+                // Add dots to slider or given dotContainer element
                 if (helper.isLastSlide(i)) {
-                    this.dotWrap = document.createElement('ul');
+                    this.dotWrap = o.dotContainer || document.createElement('ul');
                     this.dotWrap.appendChild(dotFrag);
-                    _this.appendChild(this.dotWrap);
-                    addClass(this.dotWrap, o.dotWrapClass);
+                    
+                    if (!o.dotContainer) {
+                        addClass(this.dotWrap, classes.dotWrap);
+                        _this.appendChild(this.dotWrap);
+                    }
                 }
             }
-
-            // Prevent slider from breaking when tabbing during slide
-            // transition which alters scrollLeft. Set scrollLeft to
-            // 0 and slide to focused slide instead.
-            addEvent(this.slides[i], 'focus', function(e) {
-                stopSlideshow();
-                _this.scrollLeft = 0;
-                setPosition(i, true);
-            }, true);
         });
 
         // Listen for window resize events
@@ -512,13 +572,15 @@ function HammerSlider(_this, options) {
         resetSlider();
         touchInit();
 
-        o.mouseDrag && addClass(slider.container, 'mouse-drag-enabled');
+        o.mouseDrag && addClass(slider.container, classes.mouseDrag);
         o.slideShow && startSlideshow();
+
+        // API Callback after setup, 
+        // expose API first using timeout
+        setTimeout(function() {
+            o.onSetup && o.onSetup(nrOfSlides);
+        }, 0);
     }
-
-
-    // Merge user options into defaults
-    options && mergeObjects(o, options);
 
     // Init
     setup();

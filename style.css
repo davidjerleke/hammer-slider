@@ -67,10 +67,10 @@ body {
 	.c-slider__container {
 		-ms-touch-action: pan-y;
     	touch-action: pan-y;
-    	transform: matrix(0,0,0,0,0,0);
+    	transform: matrix(0, 0, 0, 0, 0, 0);
 	}
 
-	.c-slider__container.mouse-drag-enabled .c-slider__slide {
+	.c-slider__container--mouse-drag-enabled .c-slider__slide {
 		-webkit-user-select: none;
     	-moz-user-select: none;
     	-ms-user-select: none;
@@ -80,7 +80,7 @@ body {
 	    cursor: grab;
 	}
 
-	.c-slider__container.is-dragging .c-slider__slide * {
+	.c-slider__container--is-dragging .c-slider__slide * {
 	    cursor: move;
 	    cursor: -webkit-grabbing;
 	    cursor: -moz-grabbing;
@@ -118,7 +118,7 @@ body {
 		left: 0;
 	}
 
-	.c-slider__dots > li {
+	.c-slider__dot {
 		display: inline-block; 
 		cursor: pointer;
 		border-radius: 50%;
@@ -129,11 +129,11 @@ body {
 		
 	}
 
-		.c-slider__dots > li:not(:last-child) {
+		.c-slider__dot:not(:last-child) {
 			margin-right: 5px;
 		}
 
-		.c-slider__dots > li.is-active {
+		.c-slider__dot--is-active {
 			opacity: 0.9;
 		}
 
@@ -151,10 +151,6 @@ body {
 		margin-top: -25px;
 		transition: opacity 0.2s;
 	}
-
-		.c-slider__btn:hover {
-			/*opacity: 1;*/
-		}
 
 		.c-slider__btn--left {
 			left: 10px;

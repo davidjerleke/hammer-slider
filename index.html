@@ -10,7 +10,7 @@
 		</title>
 	</head>
 	<body>
-		<div class="c-slider-wrap clearfix">
+		<div class="c-slider-wrap">
 			<div class="c-slider" id="slider">
 				<div class="c-slider__container u-clearfix">
 					<div class="c-slider__slide" style="background-image: url('img/1.jpg');">
@@ -21,9 +21,6 @@
 										<h1>
 											Slide 1
 										</h1>
-										<a href="#">
-											Testlink
-										</a>
 										<a href="#">
 											Testlink
 										</a>
@@ -75,9 +72,6 @@
 										<a href="#">
 											Testlink
 										</a>
-										<a href="#">
-											Testlink
-										</a>
 									</div>
 								</div>
 							</div>
@@ -91,9 +85,6 @@
 										<h1>
 											Slide 5
 										</h1>
-										<a href="#">
-											Testlink
-										</a>
 										<a href="#">
 											Testlink
 										</a>
@@ -118,6 +109,8 @@
 		<button id="showSlider">
 			Show Slider
 		</button>
+
+		<ul class="dots" style="background:tomato;"></ul>
 		
 		
 		<script type="text/javascript" src="touch-swipe.js"></script>
@@ -127,20 +120,37 @@
 		(function() {
 
 			var sliderElement = document.getElementById('slider'),
+				
 				slider = HammerSlider(sliderElement, {
-				slideShow: false,
-				slideInterval: 2000,
-				slideSpeed: 60,
-				stopAfterInteraction: false,
-				dotActiveClass: 'is-active',
-				containerSelector: '.c-slider__container',
-				dotWrapClass: 'c-slider__dots',
-				startSlide: 0,
-				dots: true,
-				rewind: false,
-				mouseDrag: true,
-				dragThreshold: 10
-			});
+					slideShow: false,
+					slideInterval: 2000,
+					slideSpeed: 60,
+					stopAfterInteraction: false,
+					dotActiveClass: 'is-active',
+					cssPrefix: 'c-slider',
+
+					//dotContainer: document.body.querySelector('.dots'),
+					//slideContainer: sliderElement.querySelector('.c-slider__container'),
+
+					startSlide: 0,
+					minimumDragDistance: 30,
+					/*
+					beforeSlideChange: function(targetSlide) {
+						console.log('slide is changing to: ' + targetSlide);
+					},
+					afterSlideChange: function(targetSlide) {
+						console.log('slide has changed: ' + targetSlide);
+					},
+					*/
+					/*onSetup: function(totalSlides) {
+						console.log('setup! Total slides: ' + totalSlides);
+						alert(totalSlides);
+					},*/
+					dots: true,
+					rewind: false,
+					mouseDrag: true,
+					dragThreshold: 10
+				});
 
 			document.getElementById('slideright').addEventListener('click', slider.next, false);
 			document.getElementById('slideleft').addEventListener('click', slider.prev, false);

@@ -1,3 +1,11 @@
+/*!
+ * Event Burrito is a touch / mouse / pointer event unifier
+ * https://github.com/wilddeer/Event-Burrito
+ * Copyright Oleg Korsunsky | http://wd.dizaina.net/
+ *
+ * MIT License
+ */
+
 function touchEvents(_this, options, callback) {
     'use strict';
 
@@ -121,6 +129,8 @@ function touchEvents(_this, options, callback) {
         }
         touchCallback(event, 'none', 'start');
     }
+
+
 
     function touchMove(event) {
         getDiff(event);
