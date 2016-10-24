@@ -28,12 +28,8 @@
 /*
     TO FIX
     ------
-    *   Slidespeed only takes even numbers of 
-        10. If given number is not even, make
-        it so. Math.ceil(o.slideSpeed / 10) * 10
-
-    *   Custom slideSpeed should be enabled for touch
-        and slideTo API function    
+    *   Fix clone issue of dots when
+        there's only two slides.
 
     *   Rewrite to ES6.
 
@@ -61,6 +57,7 @@ function HammerSlider(_this, options) {
         slideShow: false,
         slideInterval: false,
         slideSpeed: 50,
+        touchSpeed: 50,
         startSlide: 0,
         dragThreshold: 10,
         minimumDragDistance: 30,
@@ -302,7 +299,7 @@ function HammerSlider(_this, options) {
 
 
 
-    function setPosition(nextSlide, relative, autoSlide) {
+    function setPosition(nextSlide, relative, speed, autoSlide) {
         var next = (relative) ? getRelativeSlide(nextSlide) : nextSlide,
             slideDistance = next * slider.width * -1,
             activeSlide;
@@ -317,20 +314,21 @@ function HammerSlider(_this, options) {
         o.beforeSlideChange && o.beforeSlideChange(activeSlide);
 
         setActiveDot(activeSlide);
-        slide(slideDistance, autoSlide);
+        slide(slideDistance, speed, autoSlide);
     }
 
 
 
-    function slide(slideDistance, autoSlide) {
-        var currPos = getCurrentPosition(),
+    function slide(slideDistance, speed, autoSlide) {
+        var slideSpeed = speed || o.slideSpeed,
+            currPos = getCurrentPosition(),
             start = currPos,
             change = slideDistance - start,
             currentTime = 0,
             increment = 2;
 
         function animate() {
-            if (currentTime === o.slideSpeed) {
+            if (currentTime === slideSpeed) {
                 if (slideIndex % nrOfSlides === o.startSlide) {
                     resetSlider();
                 }
@@ -343,7 +341,7 @@ function HammerSlider(_this, options) {
                     circle(hasReachedCirclePoint(currPos));
                 }
                 currentTime += increment;
-                currPos = parseInt(Math.easeOutQuad(currentTime, start, change, o.slideSpeed));
+                currPos = parseInt(Math.easeOutQuad(currentTime, start, change, slideSpeed));
                 transform(slider.container, currPos);
 
                 // Recursively call RAF until slide distance is met
@@ -365,7 +363,7 @@ function HammerSlider(_this, options) {
 
     function startSlideshow() {
         slider.autoTimeOut = setTimeout(function() {
-            setPosition(getNextSlide(1), false, true);
+            setPosition(getNextSlide(1), false, false, true);
         }, o.slideInterval);
     }
 
@@ -465,7 +463,7 @@ function HammerSlider(_this, options) {
                         targetSlide = (o.rewind && !currentSlide) ? 0 : getNextSlide(-1);
                     }
                 }
-                setPosition(targetSlide);
+                setPosition(targetSlide, false, o.touchSpeed);
 
                 // Remove drag class
                 removeClass(slider.container, classes.dragging);
@@ -510,7 +508,7 @@ function HammerSlider(_this, options) {
         o.slideSpeed = (o.slideSpeed < 2) ? 2 : Math.ceil(o.slideSpeed / 10) * 10;
 
         forEachSlide(function(i) {
-            // Cache slides in array
+            // Cache slides
             this.slides.push(this.container.children[i]);
 
             // Prevent slider from breaking when tabbing during slide
@@ -546,10 +544,11 @@ function HammerSlider(_this, options) {
                             setPosition(nr, true);
                         }
                     });
-
+                    
                     dotFrag.appendChild(dot);
                 })(newDot, i);
 
+                // Cache dots
                 this.dots.push(newDot);
 
                 // Add dots to slider or given dotContainer element
@@ -587,8 +586,8 @@ function HammerSlider(_this, options) {
 
     // Expose slider API
     return {
-        goTo: function(slideNr) {
-            setPosition(slideNr, true);
+        goTo: function(slideNr, speed) {
+            setPosition(slideNr, true, speed);
         },
         reset: function(slideNr) {
             resetSlider(slideNr);
