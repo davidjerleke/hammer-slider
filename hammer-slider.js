@@ -107,6 +107,7 @@ function HammerSlider(_this, options) {
     }
 
 
+
     function removeClass(el, className) {
         el && el.classList.remove(className);
     }
@@ -163,8 +164,8 @@ function HammerSlider(_this, options) {
 
 
 
-    function resetSlider(position) {
-        var pos = (typeof position !== 'undefined') ? Math.abs(position) : o.startSlide;
+    function setupSlider(startSlide) {
+        var pos = startSlide ? Math.abs(startSlide) : o.startSlide;
         slideIndex = pos;
         slider.width = _this.offsetWidth;
 
@@ -330,12 +331,12 @@ function HammerSlider(_this, options) {
         function animate() {
             if (currentTime === slideSpeed) {
                 if (slideIndex % nrOfSlides === o.startSlide) {
-                    resetSlider();
+                    setupSlider();
                 }
-                shouldResumeSlideshow(autoSlide);
 
                 // API Callback
                 o.afterSlideChange && o.afterSlideChange(getActiveSlideNr());
+                shouldResumeSlideshow(autoSlide);
             } else {
                 if (!o.rewind) {
                     circle(hasReachedCirclePoint(currPos));
@@ -407,7 +408,7 @@ function HammerSlider(_this, options) {
 
     function onWidthChange() {
         stopSlideshow();
-        resetSlider(getActiveSlideNr());
+        setupSlider(getActiveSlideNr());
         shouldResumeSlideshow();
     }
 
@@ -544,7 +545,7 @@ function HammerSlider(_this, options) {
                             setPosition(nr, true);
                         }
                     });
-                    
+
                     dotFrag.appendChild(dot);
                 })(newDot, i);
 
@@ -568,7 +569,7 @@ function HammerSlider(_this, options) {
         addEvent(window, 'resize', onWidthChange);
         addEvent(window, 'orientationchange', onWidthChange);
 
-        resetSlider();
+        setupSlider();
         touchInit();
 
         o.mouseDrag && addClass(slider.container, classes.mouseDrag);
@@ -590,7 +591,7 @@ function HammerSlider(_this, options) {
             setPosition(slideNr, true, speed);
         },
         reset: function(slideNr) {
-            resetSlider(slideNr);
+            setupSlider(slideNr);
         },
         next: next,
         prev: prev,
