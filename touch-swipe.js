@@ -9,11 +9,15 @@
 function touchEvents(_this, options, callback) {
     'use strict';
 
+    var touchStateCallback = function() {};
     var o = {
         preventDefault: true,
         clicksAllowed: true,
         mouse: true,
-        dragThreshold: 10 // Minimum distance to determine swipe direction
+        dragThreshold: 10, // Minimum distance to determine swipe direction
+        start: touchStateCallback,
+        move: touchStateCallback,
+        end: touchStateCallback
     };
         
     // Merge user options into defaults
@@ -127,7 +131,7 @@ function touchEvents(_this, options, callback) {
         for (var key in diff) {
             diff[key] = 0;
         }
-        touchCallback(event, 'none', 'start');
+        o.start(event);
     }
 
 
@@ -140,13 +144,13 @@ function touchEvents(_this, options, callback) {
         } else {
             if (axis === 'X') {
                 direction = (diff.X < 0) ? 'left' : 'right';
-                if (preventDefault) preventDefault(event);
+                preventDefault && preventDefault(event);
             } else if (axis === 'Y') {
                 direction = (diff.Y < 0) ? 'up' : 'down';
             }
         }
 
-        touchCallback(event, direction, 'move', diff);
+        o.move(event, direction, diff);
     }
 
 
@@ -158,25 +162,29 @@ function touchEvents(_this, options, callback) {
         removeEvent(document, events[eventType][2], touchEnd);
         removeEvent(document, events[eventType][3], touchEnd);
 
-        touchCallback(event, direction, 'end', diff);
+        o.end(event, direction, diff);
         axis = false;
     }
 
 
 
     function init() {
-        addEvent(_this, events[eventModel][0], function(event) { // Bind touchstart
+        // Bind touchstart
+        addEvent(_this, events[eventModel][0], function(event) {
             touchStart(event, eventModel); 
         });
-        addEvent(_this, 'dragstart', preventDefault); // Prevent stuff from dragging when using mouse
+        // Prevent stuff from dragging when using mouse
+        addEvent(_this, 'dragstart', preventDefault);
         
-        if (o.mouse && !eventModel) { // Bind mousedown if necessary
+        // Bind mousedown if necessary
+        if (o.mouse && !eventModel) {
             addEvent(_this, events[3][0], function(event) {
                 touchStart(event, 3);
             });
         }
 
-        addEvent(_this, 'click', function(event) { // No clicking during touch
+        // No clicking during touch
+        addEvent(_this, 'click', function(event) {
             o.clicksAllowed ? touchCallback(event) : preventDefault(event);
         });
     }

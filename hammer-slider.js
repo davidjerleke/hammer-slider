@@ -146,7 +146,7 @@ function HammerSlider(_this, options) {
 
     function getCurrentPosition() {
         var transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform);
-        // matrixIndex = transform.match('3d') ? 12 : 4; // Should be used for translate 3D
+        // var matrixIndex = transform.match('3d') ? 12 : 4; // Should be used for translate 3D
         return parseInt(transform.split(',')[4]);
     }
 
@@ -338,9 +338,7 @@ function HammerSlider(_this, options) {
                 o.afterSlideChange && o.afterSlideChange(getActiveSlideNr());
                 shouldResumeSlideshow(autoSlide);
             } else {
-                if (!o.rewind) {
-                    circle(hasReachedCirclePoint(currPos));
-                }
+                !o.rewind && circle(hasReachedCirclePoint(currPos));
                 currentTime += increment;
                 currPos = parseInt(Math.easeOutQuad(currentTime, start, change, slideSpeed));
                 transform(slider.container, currPos);
@@ -416,51 +414,50 @@ function HammerSlider(_this, options) {
 
     function touchInit() {
         var startPos,
+            currPos,
             currentSlide;
 
         touchEvents(slider.container, {
             mouse: o.mouseDrag,
-            dragThreshold: o.dragThreshold
-        }, function(e, direction, phase, diff) {
-            var currPos;
-
-            function isDir(dir) {
-                return dir === direction;
-            }
-
-            if (phase === 'start') {
+            dragThreshold: o.dragThreshold,
+            // Pass touch state actions
+            start: function(event) {
                 stopSlideshow();
                 startPos = getCurrentPosition();
                 currentSlide = slideIndex % nrOfSlides;
 
                 // Add drag class
                 addClass(slider.container, classes.dragging);
-            }
+            },
+            move: function(event, direction, diff) {
+                function isDir(dir) {
+                    return dir === direction;
+                }
 
-            if (phase === 'move' && (isDir('left') || isDir('right'))) {
-                slider.animationFrame = requestAnimationFrame(function() {
-                    // Calculate changed position
-                    currPos = startPos + diff.X;
+                if (direction === 'left' || direction === 'right') {
+                    slider.animationFrame = requestAnimationFrame(function() {
+                        // Calculate changed position
+                        currPos = startPos + diff.X;
 
-                    if (!o.rewind) {
-                        circle(hasReachedCirclePoint(currPos));
-                    } else if (!currentSlide && isDir('right') || helper.isLastSlide(currentSlide) && isDir('left')) {
-                        // Resist dragging if it's first slide 
-                        // or last and if rewind is true
-                        currPos = startPos + (diff.X / 2.5);
-                    }
-                    transform(slider.container, currPos);
-                });
-            }
-
-            if (phase === 'end') {
+                        if (!o.rewind) {
+                            circle(hasReachedCirclePoint(currPos));
+                        } else if (!currentSlide && direction === 'right' || helper.isLastSlide(currentSlide) && direction === 'left') {
+                            // Resist dragging if it's first slide 
+                            // or last and if rewind is true
+                            currPos = startPos + (diff.X / 2.5);
+                        }
+                        transform(slider.container, currPos);
+                    });
+                }
+            },
+            end: function(event, direction, diff) {
                 var targetSlide = slideIndex;
 
                 // Only set new target slide if drag exceeds minimum drag distance
                 if (Math.abs(diff.X) > o.minimumDragDistance) {
-                    if (isDir('left')) {
+                    if (direction === 'left') {
                         targetSlide = (o.rewind && helper.isLastSlide(currentSlide)) ? helper.lastSlide : getNextSlide(1);
-                    } else if (isDir('right')) {
+                    } else if (direction === 'right') {
                         targetSlide = (o.rewind && !currentSlide) ? 0 : getNextSlide(-1);
                     }
                 }
@@ -480,13 +477,14 @@ function HammerSlider(_this, options) {
         nrOfSlides = slider.container.children.length;
         prefixedTransform = getSupport('transform');
 
-        // Only set widths if one slide is provided
-        // Remove hardware acceleration if transform is supported
+        // Only set widths if one slide is provided or
+        // transform is not supported in browser.
         if (nrOfSlides <= 1 || !prefixedTransform) {
             forEachSlide(function(i) {
                 this.container.children[i].style.width = '100%';
                 this.container.style.width = nrOfSlides * 100 + '%';
             });
+            // Remove hardware acceleration if transform is supported
             prefixedTransform && transform(slider.container, 0);
             return;
         }
@@ -495,7 +493,7 @@ function HammerSlider(_this, options) {
             SPECIAL CASE
             ------------
             If only 2 slides create clones 
-            for the carousel effect to work.
+            for the infinite carousel effect to work.
         */
         if (!o.rewind && nrOfSlides === 2) {
             var container = slider.container;
@@ -569,7 +567,9 @@ function HammerSlider(_this, options) {
         addEvent(window, 'resize', onWidthChange);
         addEvent(window, 'orientationchange', onWidthChange);
 
+        // Setup slider
         setupSlider();
+        // Listen for touch events
         touchInit();
 
         o.mouseDrag && addClass(slider.container, classes.mouseDrag);
