@@ -4,13 +4,19 @@
   "description": "",
   "main": "hammer-slider.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@bitbucket.org/davids_repositories/hammerslider.git"
+    "url": "git+https://bitbucket.org/davids_repositories/hammerslider.git"
   },
+  "keywords": [
+    "slider",
+    "carousel"
+  ],
+  "bugs": {
+    "url": "https://bitbucket.org/davids_repositories/hammerslider/issues"
+  },
+  "homepage": "https://bitbucket.org/davids_repositories/hammerslider#readme",
   "author": "David Cetinkaya",
-  "license": "MIT",
-  "homepage": "https://bitbucket.org/davids_repositories/hammerslider#readme"
+  "license": "MIT"
 }

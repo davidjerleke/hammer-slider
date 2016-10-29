@@ -28,15 +28,9 @@
 /*
     TO FIX
     ------
-    *   Fix clone issue of dots when
-        there's only two slides.
-
     *   Rewrite to ES6.
 
     *   Add Gulp.
-
-    *   Look over code for optimizations.
-
 */
 function HammerSlider(_this, options) {
     'use strict';
