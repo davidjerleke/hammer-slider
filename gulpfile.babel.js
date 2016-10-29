@@ -28,7 +28,7 @@ const Paths = (() => {
     OUT: distPath,
     SASS_IN: `${srcPath}/scss/style.scss`,
     SASS_OUT: `${distPath}/css/`,
-    JS_IN: `${srcPath}/js/`,
+    JS_IN: `${srcPath}/js/*.js`,
     JS_OUT: `${distPath}/js/`
   };
 })();
@@ -40,11 +40,7 @@ const Paths = (() => {
 |---------------------/
 */
 gulp.task('build:js', () => {
-  return gulp.src([
-      Paths.JS_IN + 'raf-polyfill.js',
-      Paths.JS_IN + 'touch-swipe.js',
-      Paths.JS_IN + 'hammer-slider.js' 
-    ])
+  return gulp.src(Paths.JS_IN)
     //.pipe(plumber())
     .pipe(sourcemaps.init())
     .pipe(babel({
@@ -79,7 +75,7 @@ gulp.task('browserSync', () => {
 |------------------/
 */
 gulp.task('build', ['build:js'], () => {
-  gulp.watch(Paths.JS_IN + '*.js', ['build:js']);
+  gulp.watch(Paths.JS_IN, ['build:js']);
 });
 
 gulp.task('serve', gulpSequence('build', 'browserSync'));
