@@ -1,0 +1,16 @@
+{
+  "name": "hammer-slider",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hammer-slider.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/davids_repositories/hammerslider.git"
+  },
+  "author": "David Cetinkaya",
+  "license": "MIT",
+  "homepage": "https://bitbucket.org/davids_repositories/hammerslider#readme"
+}
