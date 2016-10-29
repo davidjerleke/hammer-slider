@@ -48,7 +48,8 @@ function HammerSlider(_this, options) {
         },
         circlePoints = {},
         slideIndex = 0,
-        nrOfSlides,
+        nrOfSlides = 0,
+        nrOfClones = 0,
         prefixedTransform,
         helper;
 
@@ -154,6 +155,7 @@ function HammerSlider(_this, options) {
 
     function makeHelpers() {
         return {
+            relativeSlideFunc: nrOfClones ? getRelativeClone : getRelativeSlide,
             nrSlidesInPercent: nrOfSlides * 100,
             lastSlide: nrOfSlides - 1,
             isLastSlide: function(nr) {
@@ -269,7 +271,7 @@ function HammerSlider(_this, options) {
                 }
             }
         }
-
+        // Default: move to given direction
         return slideIndex + direction;
     }
 
@@ -277,14 +279,25 @@ function HammerSlider(_this, options) {
 
     function getRelativeSlide(slideNr) {
         // To get next slide number relative to current position the offset from
-        // base position needs to be calculated, since flipping slides causes offsets
-        // when infinite carousel effect is used.
+        // base position needs to be calculated, since flipping slides causes
+        // offsets for slideIndex when the infinite carousel effect is used.
         var currPos = getCurrentPosition(),
             currIndex = Math.ceil(currPos / slider.width),
             offsetCount = Math.ceil(currIndex / nrOfSlides),
             next = Math.abs(offsetCount * nrOfSlides - slideNr);
             
          return (currPos > 0) ? next * -1 : next;
+    }
+
+
+
+    function getRelativeClone(slideNr) {
+        var currPos = getCurrentPosition() / slider.width,
+            currIndex = (currPos < 0) ? Math.ceil(Math.abs(currPos)) : Math.floor(currPos * -1),
+            isEven = !(Math.abs(currIndex % nrOfSlides) % 2),
+            next = (isEven && slideNr) ? 1 : (!isEven && !slideNr) ? -1 : 0;
+
+        return currIndex + next;
     }
 
 
@@ -301,7 +314,7 @@ function HammerSlider(_this, options) {
 
 
     function setPosition(nextSlide, relative, speed, autoSlide) {
-        var next = (relative) ? getRelativeSlide(nextSlide) : nextSlide,
+        var next = (relative) ? helper.relativeSlideFunc(nextSlide) : nextSlide,
             slideDistance = next * slider.width * -1,
             activeSlide;
 
@@ -396,9 +409,9 @@ function HammerSlider(_this, options) {
 
 
     function setActiveDot(active) {
-        if (o.dots && classes.dotActiveClass) {
+        if (o.dots) {
             removeClass(slider.dotWrap.querySelector('.' + classes.dotActiveClass), classes.dotActiveClass);
-            addClass(slider.dots[active], classes.dotActiveClass);
+            addClass(slider.dots[!nrOfClones ? active : Math.abs(slideIndex % (nrOfSlides - nrOfClones))], classes.dotActiveClass);
         }
     }
 
@@ -430,10 +443,6 @@ function HammerSlider(_this, options) {
                 addClass(slider.container, classes.dragging);
             },
             move: function(event, direction, diff) {
-                function isDir(dir) {
-                    return dir === direction;
-                }
-
                 if (direction === 'left' || direction === 'right') {
                     slider.animationFrame = requestAnimationFrame(function() {
                         // Calculate changed position
@@ -489,17 +498,14 @@ function HammerSlider(_this, options) {
             return;
         }
 
-        /*  
-            SPECIAL CASE
-            ------------
-            If only 2 slides create clones 
-            for the infinite carousel effect to work.
-        */
+        // Special case: Add 2 clones if slider only has 2 
+        // slides and the infinite carousel effect is used.
         if (!o.rewind && nrOfSlides === 2) {
             var container = slider.container;
             container.appendChild(container.children[0].cloneNode(1));
             container.appendChild(container.children[nrOfSlides - 1].cloneNode(1));
             nrOfSlides += 2;
+            nrOfClones = 2;
         }
 
         // Make utilities
@@ -523,6 +529,9 @@ function HammerSlider(_this, options) {
                 var newDot = document.createElement('li');
 
                 (function(dot, nr) {
+                    // Don't create dots for clones
+                    if (nr >= nrOfSlides - nrOfClones) return;
+
                     // Make dots tabbable with "tabindex"
                     addClass(dot, classes.dotItem);
                     dot.setAttribute('tabindex', 0);

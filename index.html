@@ -45,6 +45,7 @@
 							</div>
 						</div>
 					</div>
+					<!--
 					<div class="c-slider__slide" style="background-image: url('img/3.jpg');">
 						<div class="c-slider__banner">
 							<div class="c-slider__overlay">
@@ -93,6 +94,7 @@
 							</div>
 						</div>
 					</div>
+					-->
 				</div>
 			</div>
 			<button class="c-slider__btn c-slider__btn--left" id="slideleft"></button>
@@ -103,7 +105,10 @@
 		<button id="activeSlide">
 			Get active slide number
 		</button>
-		<button id="goTo">
+		<button id="goToZero">
+			Go to slide nr 0
+		</button>
+		<button id="goToOne">
 			Go to slide nr 1
 		</button>
 		<button id="showSlider">
@@ -128,18 +133,18 @@
 					//touchSpeed: 60,
 					stopAfterInteraction: false,
 					cssPrefix: 'c-slider',
+					startSlide: 0,
 
 					//dotContainer: document.body.querySelector('.dots'),
 					//slideContainer: sliderElement.querySelector('.c-slider__container'),
-
-					startSlide: 0,
-					minimumDragDistance: 30,
 					/*
+					minimumDragDistance: 30,
+					
 					beforeSlideChange: function(targetSlide) {
 						console.log('slide is changing to: ' + targetSlide);
 					},
 					afterSlideChange: function(targetSlide) {
-						console.log('slide has changed: ' + targetSlide);
+						console.log('slide has changed to: ' + targetSlide);
 					},
 					*/
 					/*onSetup: function(totalSlides) {
@@ -159,14 +164,18 @@
 				console.log(slider.activeSlideNr());
 			}, false);
 
-			document.getElementById('goTo').addEventListener('click', function() {
+			document.getElementById('goToZero').addEventListener('click', function() {
+				slider.goTo(0);
+			}, false);
+
+			document.getElementById('goToOne').addEventListener('click', function() {
 				slider.goTo(1);
-			}, false)
+			}, false);
 
 			document.getElementById('showSlider').addEventListener('click', function() {
 				//sliderElement.style.display = 'block';
 				//slider.reset(4);
-			}, false)
+			}, false);
 
 
 			document.addEventListener('keyup', function(e) {
