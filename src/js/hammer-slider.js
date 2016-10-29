@@ -2,8 +2,8 @@
     TO FIX
     ------
     *   Rewrite to ES6.
-
 */
+
 function HammerSlider(_this, options) {
     'use strict';
 

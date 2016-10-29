@@ -26,10 +26,10 @@ const Paths = (() => {
 
   return {
     OUT: distPath,
-    SASS_IN: srcPath + '/scss/style.scss',
-    SASS_OUT: distPath + '/css/',
-    JS_IN: srcPath + '/js/',
-    JS_OUT: distPath + '/js/'
+    SASS_IN: `${srcPath}/scss/style.scss`,
+    SASS_OUT: `${distPath}/css/`,
+    JS_IN: `${srcPath}/js/`,
+    JS_OUT: `${distPath}/js/`
   };
 })();
 
