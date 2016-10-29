@@ -39,7 +39,7 @@ const Paths = (() => {
 |  task --> BUILD JS
 |---------------------/
 */
-gulp.task('build:js', function() {
+gulp.task('build:js', () => {
   return gulp.src([
       Paths.JS_IN + 'raf-polyfill.js',
       Paths.JS_IN + 'touch-swipe.js',
