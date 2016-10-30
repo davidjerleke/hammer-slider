@@ -9,7 +9,7 @@
  * to suit this project.
  */
 
-function touchEvents(_this, options, callback) {
+function TouchEvents(_this, options) {
   'use strict';
 
   var touchStateCallback = function() {},
@@ -31,7 +31,6 @@ function touchEvents(_this, options, callback) {
     direction,
     eventType,
     axis,
-    touchCallback = callback || function(evt, dir, phase, distance) {},
     support = {
       pointerEvents: !!window.navigator.pointerEnabled,
       msPointerEvents: !!window.navigator.msPointerEnabled
@@ -188,7 +187,7 @@ function touchEvents(_this, options, callback) {
 
     // No clicking during touch
     addEvent(_this, 'click', function(event) {
-      o.clicksAllowed ? touchCallback(event) : preventDefault(event);
+      o.clicksAllowed ? touchStateCallback(event) : preventDefault(event);
     });
   }
 

@@ -7,6 +7,7 @@
 */
 import gulp from 'gulp';
 import babel from 'gulp-babel';
+import eslint from 'gulp-eslint';
 import uglify from 'gulp-uglify';
 import concat from 'gulp-concat';
 import rename from 'gulp-rename';
@@ -15,10 +16,11 @@ import gulpSequence from 'gulp-sequence';
 import browserSync from 'browser-sync';
 browserSync.create();
 
+
 /*
-|------------------------------------\
-|  settings --> RELEASE/DEV & PATHS
-|------------------------------------/
+|----------------------\
+|  settings --> PATHS
+|----------------------/
 */
 const Paths = (() => {
   const srcPath = './src',
@@ -26,9 +28,9 @@ const Paths = (() => {
 
   return {
     OUT: distPath,
-    SASS_IN: `${srcPath}/scss/style.scss`,
+    SASS_SRC: `${srcPath}/scss/style.scss`,
     SASS_OUT: `${distPath}/css/`,
-    JS_IN: `${srcPath}/js/*.js`,
+    JS_SRC: `${srcPath}/js/*.js`,
     JS_OUT: `${distPath}/js/`
   };
 })();
@@ -40,11 +42,10 @@ const Paths = (() => {
 |---------------------/
 */
 gulp.task('build:js', () => {
-  return gulp.src(Paths.JS_IN)
-    //.pipe(plumber())
+  return gulp.src(Paths.JS_SRC)
     .pipe(sourcemaps.init())
     .pipe(babel({
-        presets: ['es2015']
+      presets: ['es2015']
     }))
     .pipe(concat('hammerslider.js'))
     .pipe(uglify())
@@ -56,6 +57,19 @@ gulp.task('build:js', () => {
 
 
 /*
+|--------------------\
+|  task --> LINT JS
+|--------------------/
+*/
+gulp.task('lint:js', () => {
+  return gulp.src(Paths.JS_SRC)
+    .pipe(eslint())
+    .pipe(eslint.format())
+    .pipe(eslint.failAfterError());
+});
+
+
+/*
 |------------------------\
 |  task --> BROWSERSYNC
 |------------------------/
@@ -63,7 +77,7 @@ gulp.task('build:js', () => {
 gulp.task('browserSync', () => {
   browserSync.init({
     server: {
-        baseDir: "./"
+      baseDir: "./"
     }
   });
 });
@@ -75,9 +89,11 @@ gulp.task('browserSync', () => {
 |------------------/
 */
 gulp.task('build', ['build:js'], () => {
-  gulp.watch(Paths.JS_IN, ['build:js']);
+  gulp.watch(Paths.JS_SRC, ['build:js']);
 });
 
 gulp.task('serve', gulpSequence('build', 'browserSync'));
+
+gulp.task('lint', ['lint:js']);
 
 gulp.task('default', ['serve']);
