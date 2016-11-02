@@ -5,14 +5,14 @@
  *
  * MIT License
  *
- * NOTE: Event Burrito has been modified from its original form
- * to suit this project.
+ * NOTE: Event Burrito has been modified from
+ * its original form to suit this project.
  */
 
 function TouchEvents(_this, options) {
   'use strict';
 
-  var touchStateCallback = function() {},
+  const touchStateCallback = () => {},
     o = {
       preventDefault: true,
       clicksAllowed: true,
@@ -26,7 +26,7 @@ function TouchEvents(_this, options) {
   // Merge user options into defaults
   options && mergeObjects(o, options);
 
-  var start = {},
+  let start = {},
     diff = {},
     direction,
     eventType,
@@ -44,12 +44,12 @@ function TouchEvents(_this, options) {
     ],
     checks = [
       //touch events
-      function(e) {
+      (e) =>{
         //skip the event if it's multitouch or pinch move
         return (e.touches && e.touches.length > 1) || (e.scale && e.scale !== 1);
       },
       //pointer events
-      function(e) {
+      (e) => {
         //Skip it, if:
         //1. event is not primary (other pointers during multitouch),
         //2. left mouse button is not pressed,
@@ -57,12 +57,12 @@ function TouchEvents(_this, options) {
         return !e.isPrimary || (e.buttons && e.buttons !== 1) || (!o.mouse && e.pointerType !== 'touch' && e.pointerType !== 'pen');
       },
       //IE10 pointer events
-      function(e) {
+      (e) => {
         //same checks as in pointer events
         return !e.isPrimary || (e.buttons && e.buttons !== 1) || (!o.mouse && e.pointerType !== e.MSPOINTER_TYPE_TOUCH && e.pointerType !== e.MSPOINTER_TYPE_PEN);
       },
       //mouse events
-      function(e) {
+      (e) => {
         //skip the event if left mouse button is not pressed
         //in IE7-8 `buttons` is not defined, in IE9 LMB is 0
         return (e.buttons && e.buttons !== 1);
@@ -72,7 +72,7 @@ function TouchEvents(_this, options) {
 
 
   function mergeObjects(targetObj, sourceObject) {
-    for (var key in sourceObject) {
+    for (let key in sourceObject) {
       if (sourceObject.hasOwnProperty(key)) {
         targetObj[key] = sourceObject[key];
       }
@@ -130,7 +130,7 @@ function TouchEvents(_this, options) {
       time: new Date().getTime()
     };
 
-    for (var key in diff) {
+    for (let key in diff) {
       diff[key] = 0;
     }
     o.start(event);
@@ -172,7 +172,7 @@ function TouchEvents(_this, options) {
 
   function init() {
     // Bind touchstart
-    addEvent(_this, events[eventModel][0], function(event) {
+    addEvent(_this, events[eventModel][0], (event) => {
       touchStart(event, eventModel); 
     });
     // Prevent stuff from dragging when using mouse
@@ -180,13 +180,13 @@ function TouchEvents(_this, options) {
     
     // Bind mousedown if necessary
     if (o.mouse && !eventModel) {
-      addEvent(_this, events[3][0], function(event) {
+      addEvent(_this, events[3][0], (event) => {
         touchStart(event, 3);
       });
     }
 
     // No clicking during touch
-    addEvent(_this, 'click', function(event) {
+    addEvent(_this, 'click', (event) => {
       o.clicksAllowed ? touchStateCallback(event) : preventDefault(event);
     });
   }

@@ -1,8 +1,11 @@
-/*
-    TO FIX
-    ------
-    *   Rewrite to ES6.
-*/
+/*!
+ * Hammerslider is a lightweight infinite carousel
+ * https://github.com/
+ * Copyright David Cetinkaya
+ *
+ * MIT License
+ */
+
 function HammerSlider(_this, options) {
   'use strict';
 
@@ -141,7 +144,7 @@ function HammerSlider(_this, options) {
 
       flipPoints['-1'] = {
         slide: helper.isLastSlide(pos) ? 0 : !pos ? helper.lastSlide - 1 : helper.lastSlide,
-        flipPoint: pos * slider.width * -1 + slider.width / 2,
+        flipPoint: pos * slider.width * -1 + slider.width * 0.5,
         toPos: helper.isLastSlide(pos) ? 0 : helper.nrSlidesInPercent * -1
       };
     }
