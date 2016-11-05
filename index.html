@@ -165,16 +165,16 @@
 			}, false);
 
 			document.getElementById('goToZero').addEventListener('click', function() {
-				slider.goTo(0);
+				slider.moveTo(0);
 			}, false);
 
 			document.getElementById('goToOne').addEventListener('click', function() {
-				slider.goTo(1);
+				slider.moveTo(1);
 			}, false);
 
 			document.getElementById('showSlider').addEventListener('click', function() {
 				sliderElement.style.display = 'block';
-				slider.reset(1);
+				slider.setupSlider(1);
 			}, false);
 
 
@@ -210,11 +210,11 @@
 			$('#slideleft').on('click', slider.data('Hammer').prev);
 
 			$('#goToZero').on('click', function() {
-				slider.data('Hammer').goTo(0);
+				slider.data('Hammer').moveTo(0);
 			});
 
 			$('#goToOne').on('click', function() {
-				slider.data('Hammer').goTo(1);
+				slider.data('Hammer').moveTo(1);
 			});
 
 		})();

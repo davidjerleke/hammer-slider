@@ -53,7 +53,7 @@ You may place anything you want within the slides.
 
 ##Settings
 
-HammerSlider will accept an object as an optional second parameter. Default settings are:
+HammerSlider accepts an object as an optional second parameter. Default settings are:
 
 ```javascript
 {
@@ -95,8 +95,8 @@ HammerSlider will accept an object as an optional second parameter. Default sett
   //Generate dots
   dots: false,
   
-  //Element that will contain dots. By default it will be generated,
-  //and appended to slider root element. Can be anywhere on the page.
+  //Element that will contain dots. By default it will be generated and appended to slider root element. 
+  //Can be anywhere on the page.
   dotContainer: undefined,
   
   //Element that contain slides. First child of slider root element will be used by default.
@@ -114,4 +114,33 @@ HammerSlider will accept an object as an optional second parameter. Default sett
   //Receives total number of slides as parameter.
   onSetup: undefined
 }
+```
+
+##API
+
+HammerSlider exposes a set of function upon setup that can be used to control the slider externally:
+
+```javascript
+  //Change to next slide
+  next();
+  
+  //Change to previous slide
+  prev();
+  
+  //Stop slideshow
+  stop();
+  
+  //Start slideshow
+  start();
+  
+  //Get current active slide number
+  getActiveSlideNr();
+ 
+  //Slide to slide number passed as a parameter
+  moveTo(number);
+  
+  //Recalculates slider's and slides widths and resets slider position to slide number. 
+  //Useful when slider is used in a lightbox or when container width changes. 
+  //This is invoked on window resize and orientation change
+  setupSlider(number); 
 ```
