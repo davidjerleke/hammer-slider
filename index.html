@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
 		<link rel="stylesheet" type="text/css" href="style.css" />
-		<link rel="stylesheet" type="text/css" href="dist/css/style.min.css" />
+		<!--<link rel="stylesheet" type="text/css" href="dist/required.css" />-->
 		<title>
 			HammerSlider by David
 		</title>
@@ -116,11 +116,16 @@
 
 		<ul class="dots" style="background:tomato;"></ul>
 		
-		<script type="text/javascript" src="dist/js/hammerslider.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+		<script type="text/javascript" src="dist/hammerslider.min.js"></script>
 		<script type="text/javascript">
 
 		(function() {
 
+			/*
+				VANILLA JS
+			*/
+			/*
 			var sliderElement = document.getElementById('slider'),
 				
 				slider = HammerSlider(sliderElement, {
@@ -134,7 +139,6 @@
 
 					//dotContainer: document.body.querySelector('.dots'),
 					//slideContainer: sliderElement.querySelector('.c-slider__container'),
-					/*
 					minimumDragDistance: 30,
 					
 					beforeSlideChange: function(targetSlide) {
@@ -143,13 +147,10 @@
 					afterSlideChange: function(targetSlide) {
 						console.log('slide has changed to: ' + targetSlide);
 					},
-					*/
-					/*
 					onSetup: function(totalSlides) {
 						console.log('setup! Total slides: ' + totalSlides);
 						alert(totalSlides);
 					},
-					*/
 					dots: true,
 					rewind: false,
 					mouseDrag: true,
@@ -184,6 +185,37 @@
 					slider.prev();
 				}
 			}, false);
+			*/
+
+			/*
+				JQUERY
+			*/
+			var slider = $('#slider');
+				
+			slider.HammerSlider({
+				slideShow: false,
+				slideInterval: 2000,
+				slideSpeed: 60,
+				touchSpeed: 100,
+				stopAfterInteraction: false,
+				cssPrefix: 'c-slider',
+				startSlide: 0,
+				dots: true,
+				rewind: false,
+				mouseDrag: true,
+				dragThreshold: 10
+			});
+
+			$('#slideright').on('click', slider.data('Hammer').next);
+			$('#slideleft').on('click', slider.data('Hammer').prev);
+
+			$('#goToZero').on('click', function() {
+				slider.data('Hammer').goTo(0);
+			});
+
+			$('#goToOne').on('click', function() {
+				slider.data('Hammer').goTo(1);
+			});
 
 		})();
 		</script>

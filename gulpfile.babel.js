@@ -6,8 +6,9 @@
 |--------------------------------/
 */
 import gulp from 'gulp';
-import gutil from 'gutil';
 import babel from 'gulp-babel';
+import clean from 'gulp-clean';
+import gulpif from 'gulp-if';
 import eslint from 'gulp-eslint';
 import uglify from 'gulp-uglify';
 import concat from 'gulp-concat';
@@ -23,9 +24,9 @@ browserSync.create();
 
 
 /*
-|----------------------\
-|  settings --> PATHS
-|----------------------/
+|------------------------------\
+|  settings --> PATHS & FLAGS
+|------------------------------/
 */
 const paths = (() => {
   const srcPath = './src',
@@ -33,12 +34,29 @@ const paths = (() => {
 
   return {
     OUT: distPath,
-    SASS_SRC: `${srcPath}/scss/**/*.scss`,
-    SASS_OUT: `${distPath}/css/`,
-    JS_SRC: `${srcPath}/js/*.js`,
-    JS_OUT: `${distPath}/js/`
+    SASS_SRC: `${srcPath}/scss/*.scss`,
+    JS_SRC: `${srcPath}/js/*.js`
   };
 })();
+
+
+const flags = ((production) => {
+  return {
+    DEV: !production,
+    PROD: production
+  };
+})(process.env.NODE_ENV === 'production');
+
+
+/*
+|------------------\
+|  task --> CLEAN
+|------------------/
+*/
+gulp.task('clean', () => {
+  return gulp.src(`${paths.OUT}/*`, { read: false })
+    .pipe(clean());
+});
 
 
 /*
@@ -49,15 +67,15 @@ const paths = (() => {
 gulp.task('build:js', () => {
   return gulp.src(paths.JS_SRC)
     .pipe(plumber())
-    .pipe(sourcemaps.init())
+    .pipe(gulpif(flags.DEV, sourcemaps.init()))
     .pipe(babel({
       presets: ['es2015']
     }))
     .pipe(concat('hammerslider.js'))
-    .pipe(uglify())
+    .pipe(gulpif(flags.PROD, uglify({mangle: true})))
     .pipe(rename({suffix: '.min'}))
-    .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest(paths.JS_OUT))
+    .pipe(gulpif(flags.DEV, sourcemaps.write('.')))
+    .pipe(gulp.dest(paths.OUT))
     .pipe(browserSync.stream());
 });
 
@@ -70,8 +88,7 @@ gulp.task('build:js', () => {
 gulp.task('lint:js', () => {
   return gulp.src(paths.JS_SRC)
     .pipe(eslint())
-    .pipe(eslint.format())
-    .pipe(eslint.failAfterError());
+    .pipe(eslint.format());
 });
 
 
@@ -83,19 +100,15 @@ gulp.task('lint:js', () => {
 gulp.task('build:css', () => {
   return gulp.src(paths.SASS_SRC)
     .pipe(plumber())
-    .pipe(sourcemaps.init())
-    .pipe(sass().on('error', gutil.log))
+    .pipe(sass({outputStyle: 'expanded'}).on('error', sass.logError))
     .pipe(autoprefixer({
       browsers: [
         'last 6 versions',
-        'ie 9-11',
+        'ie 10-11',
         '> 5%'
       ]
     }))
-    .pipe(cleanCss({ advanced: false }))
-    .pipe(rename({suffix: '.min'}))
-    .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest(paths.SASS_OUT))
+    .pipe(gulp.dest(paths.OUT))
     .pipe(browserSync.stream());
 });
 
@@ -106,7 +119,7 @@ gulp.task('build:css', () => {
 |------------------------/
 */
 gulp.task('browserSync', () => {
-  browserSync.init({
+  flags.DEV && browserSync.init({
     server: {
       baseDir: "./"
     }
@@ -120,12 +133,14 @@ gulp.task('browserSync', () => {
 |------------------/
 */
 gulp.task('build', ['build:js', 'build:css'], () => {
-  gulp.watch(paths.JS_SRC, ['build:js']);
-  gulp.watch(paths.SASS_SRC, ['build:css']);
+  if (flags.DEV) {
+    gulp.watch(paths.JS_SRC, ['build:js']);
+    gulp.watch(paths.SASS_SRC, ['build:css']);
+  }
 });
 
-gulp.task('serve', gulpSequence('build', 'browserSync'));
+gulp.task('serve', gulpSequence('clean', 'build', 'browserSync'));
 
-gulp.task('lint', ['lint:js']);
+gulp.task('lint', ['lint:js', 'lint:css']);
 
 gulp.task('default', ['serve']);

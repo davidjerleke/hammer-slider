@@ -1,5 +1,5 @@
 /*!
- * Hammerslider is a lightweight infinite carousel
+ * Hammerslider is a lightweight infinite carousel plugin
  * https://github.com/
  * Copyright David Cetinkaya
  *
@@ -25,7 +25,7 @@ function HammerSlider(_this, options) {
   // Default options
   const o = {
     slideShow: false,
-    slideInterval: false,
+    slideInterval: 5000,
     slideSpeed: 50,
     touchSpeed: 50,
     startSlide: 0,
@@ -321,9 +321,7 @@ function HammerSlider(_this, options) {
 
 
   function startSlideshow() {
-    slider.autoTimeOut = setTimeout(() => {
-      setPosition(getNextSlide(1), false, false, true);
-    }, o.slideInterval);
+    slider.autoTimeOut = setTimeout(() => setPosition(getNextSlide(1), false, false, true), o.slideInterval);
   }
 
 
@@ -451,6 +449,7 @@ function HammerSlider(_this, options) {
     // Round slide speed to nearest 10th to work with raf animation loop design
     o.slideSpeed = o.slideSpeed < 2 ? 2 : Math.ceil(o.slideSpeed / 10) * 10;
 
+
     forEachSlide(function(i) {
       // Cache slides
       this.slides.push(this.container.children[i]);
@@ -522,11 +521,8 @@ function HammerSlider(_this, options) {
     o.mouseDrag && addClass(slider.container, classes.mouseDrag);
     o.slideShow && startSlideshow();
 
-    // API Callback after setup, 
-    // expose API first with timeout
-    setTimeout(() => {
-      o.onSetup && o.onSetup(nrOfSlides);
-    }, 0);
+    // API Callback after setup, expose API first with timeout
+    o.onSetup && setTimeout(() => o.onSetup(nrOfSlides), 0);
   }
 
 
@@ -544,4 +540,17 @@ function HammerSlider(_this, options) {
     reset: (slideNr) => setupSlider(slideNr),
     goTo: (slideNr, speed) => setPosition(slideNr, true, speed)
   };
+}
+
+// If jQuery is present, create a plugin.
+if (window.jQuery) {
+  (($) => {
+    $.fn.HammerSlider = function(options) {
+      this.each(function() {
+        $(this).data('Hammer', HammerSlider(this, options));
+      });
+
+      return this;
+    };
+  })(window.jQuery);
 }
