@@ -183,4 +183,4 @@ $('#next-btn').on('click', slider.data('HammerSlider').next);
 
 #License
 
-[MIT license](http://opensource.org/licenses/MIT).
+[MIT license](http://opensource.org/licenses/MIT)
