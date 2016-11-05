@@ -547,7 +547,7 @@ if (window.jQuery) {
   (($) => {
     $.fn.HammerSlider = function(options) {
       this.each(function() {
-        $(this).data('Hammer', HammerSlider(this, options));
+        $(this).data('HammerSlider', HammerSlider(this, options));
       });
 
       return this;

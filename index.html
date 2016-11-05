@@ -206,15 +206,15 @@
 				dragThreshold: 10
 			});
 
-			$('#slideright').on('click', slider.data('Hammer').next);
-			$('#slideleft').on('click', slider.data('Hammer').prev);
+			$('#slideright').on('click', slider.data('HammerSlider').next);
+			$('#slideleft').on('click', slider.data('HammerSlider').prev);
 
 			$('#goToZero').on('click', function() {
-				slider.data('Hammer').moveTo(0);
+				slider.data('HammerSlider').moveTo(0);
 			});
 
 			$('#goToOne').on('click', function() {
-				slider.data('Hammer').moveTo(1);
+				slider.data('HammerSlider').moveTo(1);
 			});
 
 		})();
