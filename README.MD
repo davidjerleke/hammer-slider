@@ -8,7 +8,7 @@ HammerSlider is a lightweight slider with infinite carousel and rewind features.
 Comes with customizable settings and its own API for extensibility.
 
 - Works with Mousedrag Events, Touch Events, Pointer Events and IE10 Pointer Events.
-- Only 8.4k minified. ~3.2k with Gzip.
+- Only 8.6k minified. ~3.3k with Gzip.
 - IE10+ compatible.
 - Library agnostic. If jQuery is available, it will register itself as a plugin.
 - API and callback functions for extensibility.
