@@ -537,8 +537,8 @@ function HammerSlider(_this, options) {
     stop: stopSlideshow,
     start: startSlideshow,
     activeSlideNr: getActiveSlideNr,
-    reset: (slideNr) => setupSlider(slideNr),
-    goTo: (slideNr, speed) => setPosition(slideNr, true, speed)
+    setupSlider: (slideNr) => setupSlider(slideNr),
+    moveTo: (slideNr, speed) => setPosition(slideNr, true, speed)
   };
 }
 

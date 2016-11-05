@@ -40,7 +40,7 @@ HTML markup:
 Javascript:
 
 ```javascript
-var slider = HammerSlider(document.getElementById('hammer-slider'));
+const slider = HammerSlider(document.getElementById('hammer-slider'));
 ```
 
 Or javascript + jQuery:
@@ -50,3 +50,68 @@ $('#hammer-slider').HammerSlider();
 ```
 
 You may place anything you want within the slides.
+
+##Settings
+
+HammerSlider will accept an object as an optional second parameter. Default settings are:
+
+```javascript
+{
+  //Slide transition speed, higher number for slower speed
+  slideSpeed: 50,
+
+  //Slide transition speed after touch interaction
+  touchSpeed: 50,
+  
+  //Slide number to start with, zero based index
+  startSlide: 0,
+  
+  //Auto sliding feature
+  slideShow: false,
+  
+  //Interval for auto sliding, ms
+  slideInterval: 5000,
+  
+  //Stop slideShow after touch, click or resize
+  stopAfterInteraction: true,
+  
+  //Disable infinite carousel effect
+  rewind: false,
+
+  //Enables mouse to drag between slides
+  mouseDrag: false,
+
+  //Minimum drag/touch distance for slide change to occur after touch, pixels
+  minimumDragDistance: 30,
+
+  //Minimum distance required before preventing vertical scroll, pixels
+  dragThreshold: 10,
+  
+  //Prefix used for generated elements,
+  //such as dots and mouse-drag-enabled etc.
+  //Change the stylesheet according to this!
+  cssPrefix: 'c-slider',
+
+  //Generate dots
+  dots: false,
+  
+  //Element that will contain dots. By default it will be generated,
+  //and appended to slider root element. Can be anywhere on the page.
+  dotContainer: undefined,
+  
+  //Element that contain slides. First child of slider root element will be used by default.
+  slideContainer: undefined,
+
+  //Callback function, runs before slide transition when slide change is triggered.
+  //Recieves upcoming slide number as parameter.
+  beforeSlideChange: undefined,
+  
+  //Callback function, runs after a slide transition is finished.
+  //Receives current slide number as parameter.
+  afterSlideChange: undefined,
+  
+  //Callback function, runs after slider is set up.
+  //Receives total number of slides as parameter.
+  onSetup: undefined
+}
+```
