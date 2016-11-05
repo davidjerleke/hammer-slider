@@ -121,26 +121,28 @@ HammerSlider accepts an object as an optional second parameter. Default settings
 HammerSlider exposes a set of function upon setup that can be used to control the slider externally:
 
 ```javascript
+
   //Change to next slide
   next();
-  
+
   //Change to previous slide
   prev();
-  
+
   //Stop slideshow
   stop();
-  
+
   //Start slideshow
   start();
-  
+
   //Get current active slide number
   getActiveSlideNr();
- 
+
   //Slide to slide number passed as a parameter
   moveTo(number);
-  
+
   //Recalculates slider's and slides widths and resets slider position to slide number. 
   //Useful when slider is used in a lightbox or when container width changes. 
   //This is invoked on window resize and orientation change
-  setupSlider(number); 
+  setupSlider(number);
+
 ```
