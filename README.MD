@@ -36,3 +36,17 @@ HTML markup:
   </div>
 </div>
 ```
+
+Javascript:
+
+```javascript
+var slider = HammerSlider(document.getElementById('hammer-slider'));
+```
+
+Or javascript + jQuery:
+
+```javascript
+$('#hammer-slider').HammerSlider();
+```
+
+You may place anything you want within the slides.
