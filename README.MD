@@ -118,7 +118,7 @@ HammerSlider accepts an object as an optional second parameter. Default settings
 
 ##API
 
-HammerSlider exposes a set of function upon setup that can be used to control the slider externally:
+HammerSlider exposes a set of functions upon setup that can be used to control the slider externally:
 
 ```javascript
 
@@ -140,9 +140,30 @@ HammerSlider exposes a set of function upon setup that can be used to control th
   //Slide to slide number passed as a parameter
   moveTo(number);
 
-  //Recalculates slider's and slides widths and resets slider position to slide number. 
+  //Recalculates slider's and slides' widths and resets slider position to slide number parameter. 
   //Useful when slider is used in a lightbox or when container width changes. 
-  //This is invoked on window resize and orientation change
+  //This is invoked on window resize and orientation change.
   setupSlider(number);
+
+```
+
+##Examples
+
+JavaScript
+
+```javascript
+	
+const slider = HammerSlider(document.getElementById('hammer-slider'), {
+  slideSpeed: 60,
+  slideShow: true,
+  slideInterval: 4000,
+  dots: true,
+  mouseDrag: true,
+  beforeSlideChange: (targetSlide) => {
+	console.log('Changing to slide number: ' + targetSlide);
+  }
+});
+
+document.getElementById('next-btn').addEventListener('click', slider.next, false);
 
 ```
