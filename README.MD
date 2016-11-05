@@ -16,3 +16,23 @@ Yet another touch slider. Yada yada yada...
 ```
 npm install hammer-slider
 ```
+
+##Usage
+
+HTML markup:
+
+```html
+<div class="c-slider" id="hammer-slider">
+  <div class="c-slider__container">
+    <div class="c-slider__slide">
+  	  ...
+    </div>
+    <div class="c-slider__slide">
+  	  ...
+    </div>
+    <div class="c-slider__slide">
+  	  ...
+    </div>
+  </div>
+</div>
+```
