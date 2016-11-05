@@ -14,6 +14,10 @@ Comes with customizable settings and its own API for extensibility.
 - API and callback functions for extensibility.
 - Animates with CSS3 transforms and requestAnimationFrame for smooth sliding.
 
+##Files
+- **[hammerslider.min.js](https://raw.github.com/)** - production script (requestAnimationFrame polyfill included)
+- **[hammerslider.required.scss](https://raw.github.com/)** - required styles for proper functioning
+
 ##Install
 
 ```
@@ -184,6 +188,6 @@ $('#hammer-slider').HammerSlider({
 $('#next-btn').on('click', slider.data('HammerSlider').next);
 ```
 
-#License
+##License
 
 [MIT license](http://opensource.org/licenses/MIT)
