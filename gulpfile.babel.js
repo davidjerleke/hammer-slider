@@ -159,6 +159,6 @@ gulp.task('build', ['build:js', 'build:css'], () => {
 
 gulp.task('serve', gulpSequence('clean', 'build', 'browserSync'));
 
-gulp.task('lint', ['lint:js', 'lint:css']);
+gulp.task('lint', ['lint:js']);
 
 gulp.task('default', ['serve']);
