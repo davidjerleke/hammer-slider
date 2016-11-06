@@ -1,11 +1,3 @@
-/*!
- * Hammerslider is a lightweight infinite carousel plugin
- * https://github.com/
- * Copyright David Cetinkaya
- *
- * MIT License
- */
-
 /*
   - Publish to NPM
   - Upload to github

@@ -9,10 +9,12 @@ import gulp from 'gulp';
 import babel from 'gulp-babel';
 import clean from 'gulp-clean';
 import gulpif from 'gulp-if';
+import header from 'gulp-header';
 import eslint from 'gulp-eslint';
 import uglify from 'gulp-uglify';
 import concat from 'gulp-concat';
 import rename from 'gulp-rename';
+import pkg from './package.json';
 import plumber from 'gulp-plumber';
 import sass from 'gulp-sass';
 import autoprefixer from 'gulp-autoprefixer';
@@ -21,6 +23,21 @@ import sourcemaps from 'gulp-sourcemaps';
 import gulpSequence from 'gulp-sequence';
 import browserSync from 'browser-sync';
 browserSync.create();
+
+
+/*
+|-----------------------\
+|  settings --> HEADER
+|-----------------------/
+*/
+const headerText = `/**
+  * HammerSlider - <%= pkg.description %>
+  * v<%= pkg.version %> | <%= pkg.homepage %>
+  * Copyright <%= pkg.author %>
+  *
+  * <%= pkg.license %> license
+  */
+  `;
 
 
 /*
@@ -75,6 +92,7 @@ gulp.task('build:js', () => {
     .pipe(gulpif(flags.PROD, uglify({mangle: true})))
     .pipe(rename({suffix: '.min'}))
     .pipe(gulpif(flags.DEV, sourcemaps.write('.')))
+    .pipe(header(headerText, { pkg : pkg } ))
     .pipe(gulp.dest(paths.OUT))
     .pipe(browserSync.stream());
 });

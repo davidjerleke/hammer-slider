@@ -8,16 +8,16 @@
     transform: translate3d(0, 0, 0);
   }
 
-  .c-slider__container--mouse-drag-enabled > .c-slider__slide {
-    user-select: none;
-    cursor: move;
-    cursor: grab;
-  }
+    .c-slider__container--mouse-drag-enabled > .c-slider__slide {
+      user-select: none;
+      cursor: move;
+      cursor: grab;
+    }
 
-  .c-slider__container--is-dragging > .c-slider__slide * {
-    cursor: move;
-    cursor: grabbing;
-  }
+    .c-slider__container--is-dragging > .c-slider__slide * {
+      cursor: move;
+      cursor: grabbing;
+    }
 
   .c-slider__slide {
     float: left;
