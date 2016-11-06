@@ -44,13 +44,13 @@ HTML markup:
 </div>
 ```
 
-Javascript:
+JavaScript:
 
 ```javascript
 const slider = HammerSlider(document.getElementById('hammer-slider'));
 ```
 
-Or javascript + jQuery:
+Or JavaScript + jQuery:
 
 ```javascript
 $('#hammer-slider').HammerSlider();
