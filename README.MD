@@ -16,7 +16,7 @@ Comes with customizable settings and its own API for extensibility.
 
 ##Files
 - **[hammerslider.min.js](https://raw.github.com/)** - production script (requestAnimationFrame polyfill included)
-- **[hammerslider.required.scss](https://raw.github.com/)** - required styles for proper functioning
+- **[hammerslider.required.css](https://raw.github.com/)** - required styles for proper functioning
 
 ##Install
 
