@@ -92,7 +92,7 @@ gulp.task('build:js', () => {
     .pipe(gulpif(flags.PROD, uglify({mangle: true})))
     .pipe(rename({suffix: '.min'}))
     .pipe(gulpif(flags.DEV, sourcemaps.write('.')))
-    .pipe(header(headerText, { pkg : pkg } ))
+    .pipe(header(headerText, {pkg : pkg}))
     .pipe(gulp.dest(paths.OUT))
     .pipe(browserSync.stream());
 });
