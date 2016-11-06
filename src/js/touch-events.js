@@ -70,7 +70,6 @@ function TouchEvents(_this, options) {
     ];
 
 
-
   function mergeObjects(targetObj, sourceObject) {
     for (let key in sourceObject) {
       if (sourceObject.hasOwnProperty(key)) {
@@ -80,12 +79,10 @@ function TouchEvents(_this, options) {
   }
 
 
-
   function addEvent(el, event, func, bool) {
     if (!event) return;
     el.addEventListener(event, func, !!bool);
   }
-
 
 
   function removeEvent(el, event, func, bool) {
@@ -94,11 +91,9 @@ function TouchEvents(_this, options) {
   }
 
 
-
   function preventDefault(event) {
     event.preventDefault ? event.preventDefault() : event.returnValue = false;
   }
-
 
 
   function getDiff(event) {
@@ -108,7 +103,6 @@ function TouchEvents(_this, options) {
       time: new Date().getTime() - start.time
     };
   }
-
 
 
   function touchStart(event, type) {
@@ -137,7 +131,6 @@ function TouchEvents(_this, options) {
   }
 
 
-
   function touchMove(event) {
     getDiff(event);
 
@@ -156,7 +149,6 @@ function TouchEvents(_this, options) {
   }
 
 
-
   function touchEnd(event) {
     !o.clicksAllowed && event.target && event.target.blur && event.target.blur();
 
@@ -167,7 +159,6 @@ function TouchEvents(_this, options) {
     o.end(event, direction, diff);
     axis = false;
   }
-
 
 
   function init() {
