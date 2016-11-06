@@ -94,8 +94,8 @@ HammerSlider accepts an object as an optional second parameter. Default settings
   //Minimum distance required before preventing vertical scroll, pixels
   dragThreshold: 10,
   
-  //Prefix used for generated elements,
-  //such as dots and mouse-drag-enabled etc.
+  //Prefix used for generated elements such as dots and mouse-drag-enabled etc.
+  //Note that all added classes use the BEM naming convention.
   //Change the stylesheet according to this!
   cssPrefix: 'c-slider',
 
