@@ -3,3 +3,4 @@ npm-debug.log
 dist
 index.html
 style.css
+*.DS_Store
