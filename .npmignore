@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+*.DS_Store
+.editorconfig
+.eslintignore
+.eslintrc
+.babelrc
+index.html
+style.css
+dist
+src

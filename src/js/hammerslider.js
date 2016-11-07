@@ -111,6 +111,7 @@ function HammerSlider(_this, options) {
 
 
   function getCurrentPosition() {
+    // Gets current translateX value for slider container.
     const transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform);
     return parseInt(transform.split(',')[4]);
   }
@@ -424,7 +425,7 @@ function HammerSlider(_this, options) {
     prefixedTransform = getSupport('transform');
 
     // Only set widths if one slide is provided or
-    // transform is not supported in browser.
+    // transform is not supported in browser and bail.
     if (nrOfSlides <= 1 || !prefixedTransform) {
       forEachSlide(function(i) {
         this.container.children[i].style.width = '100%';

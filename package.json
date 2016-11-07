@@ -1,13 +1,13 @@
 {
   "name": "hammer-slider",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Hammerslider is a lightweight infinite carousel plugin",
   "author": "David Cetinkaya",
   "license": "MIT",
-  "main": "hammer-slider.js",
+  "main": "index.js",
   "scripts": {
+    "start": "cross-env NODE_ENV=development gulp",
     "build": "cross-env NODE_ENV=production gulp",
-    "dev": "cross-env NODE_ENV=development gulp",
     "lint": "gulp lint"
   },
   "repository": {
