@@ -1,0 +1,35 @@
+.c-slider {
+  position: relative;
+  overflow: hidden;
+}
+
+.c-slider__container {
+  -ms-touch-action: pan-y;
+      touch-action: pan-y;
+  -webkit-transform: translate3d(0, 0, 0);
+          transform: translate3d(0, 0, 0);
+}
+
+.c-slider__container--mouse-drag-enabled > .c-slider__slide {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  cursor: move;
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+
+.c-slider__container--is-dragging > .c-slider__slide * {
+  cursor: move;
+  cursor: -webkit-grabbing;
+  cursor: grabbing;
+}
+
+.c-slider__slide {
+  float: left;
+  -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+  -webkit-tap-highlight-color: transparent;
+  background-size: cover;
+}

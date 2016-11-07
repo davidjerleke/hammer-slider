@@ -1,13 +1,3 @@
-/*
-  - Publish to NPM
-  - Upload to github
-  - Correct all git links in: 
-      - Comments above
-      - package.json
-      - CodePen demo
-      - README.MD
-*/
-
 function HammerSlider(_this, options) {
   'use strict';
 
