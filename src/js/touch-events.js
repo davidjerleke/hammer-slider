@@ -9,6 +9,8 @@
  * its original form to suit this project.
  */
 
+/* exported TouchEvents */
+
 function TouchEvents(_this, options) {
   'use strict';
 
