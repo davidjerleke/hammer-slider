@@ -175,7 +175,7 @@ document.getElementById('next-btn').addEventListener('click', slider.next, false
 JavaScript + jQuery
 
 ```javascript			
-$('#hammer-slider').HammerSlider({
+const slider = $('#hammer-slider').HammerSlider({
   slideSpeed: 60,
   slideShow: true,
   slideInterval: 4000,
