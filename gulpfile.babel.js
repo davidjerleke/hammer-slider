@@ -128,7 +128,8 @@ gulp.task('build:npm-js', () => {
 gulp.task('lint:js', () => {
   return gulp.src(paths.JS_SRC)
     .pipe(eslint())
-    .pipe(eslint.format());
+    .pipe(eslint.format())
+    .pipe(eslint.failAfterError());
 });
 
 
