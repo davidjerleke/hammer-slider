@@ -107,13 +107,18 @@ gulp.task('build:js', () => {
 */
 gulp.task('build:npm-js', () => {
   if (flags.PROD) {
+    const wrapper = `function() {
+      <%= contents %>
+      return HammerSlider;
+      }`;
+
     return gulp.src(paths.JS_SRC)
       .pipe(plumber())
       .pipe(babel({
         presets: ['es2015']
       }))
       .pipe(concat('index.js'))
-      .pipe(defineModule('node', {wrapper: 'function() {\n <%= contents %> \n}'}))
+      .pipe(defineModule('node', {wrapper: wrapper}))
       .pipe(gulp.dest(paths.ROOT))
       .pipe(browserSync.stream());
   }
