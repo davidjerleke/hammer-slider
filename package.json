@@ -8,7 +8,8 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development gulp",
     "build": "cross-env NODE_ENV=production gulp",
-    "lint": "gulp lint"
+    "lint": "gulp lint",
+    "test": "npm run lint"
   },
   "repository": {
     "type": "git",
