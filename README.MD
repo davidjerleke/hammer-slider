@@ -137,8 +137,9 @@ start();
 //Get current active slide number
 getActiveSlideNr();
 
-//Slide to slide number passed as a parameter
-moveTo(number);
+//Slide to slide number passed as the first parameter.
+//Second parameter is for custom slidespeed. If not provided default slidespeed will be used.
+moveTo(number, speed);
 
 //Recalculates slider's and slides' widths and resets slider position to slide number parameter. 
 //Useful when slider is used in a lightbox or when container width changes. 
