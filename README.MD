@@ -1,4 +1,4 @@
-#HammerSlider touch ![Travis-ci](https://travis-ci.org/davidcetinkaya/hammer-slider.svg?branch=master)[![npm version](https://badge.fury.io/js/hammer-slider.svg)](https://badge.fury.io/js/hammer-slider)
+#HammerSlider touch ![Travis-ci](https://travis-ci.org/davidcetinkaya/hammer-slider.svg?branch=master) [![npm version](https://badge.fury.io/js/hammer-slider.svg)](https://badge.fury.io/js/hammer-slider)
 
 [Check out the demo](https://codepen.io/DavidCetinkaya/pen/oYgxgG)
 
