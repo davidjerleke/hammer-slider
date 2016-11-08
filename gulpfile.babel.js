@@ -110,7 +110,7 @@ gulp.task('build:npm-js', () => {
     const wrapper = `function() {
       <%= contents %>
       return HammerSlider;
-      }`;
+      }()`;
 
     return gulp.src(paths.JS_SRC)
       .pipe(plumber())
