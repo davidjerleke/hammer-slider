@@ -20,6 +20,7 @@ import sass from 'gulp-sass';
 import autoprefixer from 'gulp-autoprefixer';
 import cleanCss from 'gulp-clean-css';
 import sourcemaps from 'gulp-sourcemaps';
+import defineModule from 'gulp-define-module';
 import gulpSequence from 'gulp-sequence';
 import browserSync from 'browser-sync';
 browserSync.create();
@@ -50,6 +51,7 @@ const paths = (() => {
     distPath = './dist';
 
   return {
+    ROOT: './',
     OUT: distPath,
     SASS_SRC: `${srcPath}/scss/*.scss`,
     JS_SRC: `${srcPath}/js/*.js`
@@ -95,6 +97,26 @@ gulp.task('build:js', () => {
     .pipe(gulpif(flags.PROD, header(headerText, {pkg : pkg})))
     .pipe(gulp.dest(paths.OUT))
     .pipe(browserSync.stream());
+});
+
+
+/*
+|-------------------------\
+|  task --> BUILD NPM JS
+|-------------------------/
+*/
+gulp.task('build:npm-js', () => {
+  if (flags.PROD) {
+    return gulp.src(paths.JS_SRC)
+      .pipe(plumber())
+      .pipe(babel({
+        presets: ['es2015']
+      }))
+      .pipe(concat('index.js'))
+      .pipe(defineModule('node', {wrapper: 'function() {\n <%= contents %> \n}'}))
+      .pipe(gulp.dest(paths.ROOT))
+      .pipe(browserSync.stream());
+  }
 });
 
 
@@ -150,7 +172,7 @@ gulp.task('browserSync', () => {
 |  task --> BUILD
 |------------------/
 */
-gulp.task('build', ['build:js', 'build:css'], () => {
+gulp.task('build', ['build:js', 'build:npm-js', 'build:css'], () => {
   if (flags.DEV) {
     gulp.watch(paths.JS_SRC, ['build:js']);
     gulp.watch(paths.SASS_SRC, ['build:css']);

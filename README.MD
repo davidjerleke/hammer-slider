@@ -14,6 +14,12 @@ Comes with customizable settings and its own API for extensibility.
 - API and callback functions for extensibility.
 - Animates with CSS3 transforms and requestAnimationFrame for smooth sliding.
 
+##Install
+
+```
+npm install hammer-slider
+```
+
 ##Kit
 - **[hammerslider.min.js](https://raw.githubusercontent.com/davidcetinkaya/hammer-slider/master/dist/hammerslider.min.js)** - production script (requestAnimationFrame polyfill included)
 - **[hammerslider.required.css](https://raw.githubusercontent.com/davidcetinkaya/hammer-slider/master/dist/hammerslider.required.css)** - required styles for proper functioning

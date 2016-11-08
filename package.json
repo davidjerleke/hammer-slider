@@ -5,9 +5,6 @@
   "author": "David Cetinkaya",
   "license": "MIT",
   "main": "index.js",
-  "files": [
-    "index.js"
-  ],
   "scripts": {
     "start": "cross-env NODE_ENV=development gulp",
     "build": "cross-env NODE_ENV=production gulp",
@@ -22,7 +19,7 @@
     "carousel"
   ],
   "bugs": {
-    "url": "https://bitbucket.org/davids_repositories/hammerslider/issues"
+    "url": "https://github.com/davidcetinkaya/hammer-slider/issues"
   },
   "homepage": "https://github.com/davidcetinkaya/hammer-slider",
   "devDependencies": {
@@ -36,6 +33,7 @@
     "gulp-clean": "^0.3.2",
     "gulp-clean-css": "^2.0.13",
     "gulp-concat": "^2.6.0",
+    "gulp-define-module": "^0.1.5",
     "gulp-eslint": "^3.0.1",
     "gulp-header": "^1.8.8",
     "gulp-if": "^2.0.1",
