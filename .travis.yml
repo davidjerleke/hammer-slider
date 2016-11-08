@@ -10,4 +10,4 @@ install:
 
 before_script:
   - npm install -g gulp
-script: gulp test
+script: npm run test
