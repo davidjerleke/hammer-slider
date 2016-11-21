@@ -138,7 +138,7 @@ function TouchEvents(_this, options) {
 
     //Prevent document from scrolling while swiping because
     //mobile browsers flicker during transition.
-    document.ontouchmove = (e) => { preventDefault(e); }
+    document.ontouchmove = (e) => { preventDefault(e); };
 
     if (!axis) {
       axis = (o.dragThreshold < Math.abs(diff.X)) ? 'X' : (o.dragThreshold < Math.abs(diff.Y)) ? 'Y' : false;
@@ -163,7 +163,7 @@ function TouchEvents(_this, options) {
     removeEvent(document, events[eventType][3], touchEnd);
 
     //Enable document scrolling.
-    document.ontouchmove = (e) => { return true; }
+    document.ontouchmove = (e) => { return true; };
 
     o.end(event, direction, diff);
     axis = false;
