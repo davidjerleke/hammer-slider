@@ -1,7 +1,7 @@
 {
   "name": "hammer-slider",
   "version": "0.1.4",
-  "description": "Hammerslider is a lightweight infinite carousel plugin",
+  "description": "Hammerslider touch is a lightweight infinite carousel plugin",
   "author": "David Cetinkaya",
   "license": "MIT",
   "main": "index.js",
@@ -17,7 +17,8 @@
   },
   "keywords": [
     "slider",
-    "carousel"
+    "carousel",
+    "touch"
   ],
   "bugs": {
     "url": "https://github.com/davidcetinkaya/hammer-slider/issues"
