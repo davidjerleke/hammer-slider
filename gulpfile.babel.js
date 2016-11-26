@@ -87,9 +87,7 @@ gulp.task('build:js', () => {
   return gulp.src(paths.JS_SRC)
     .pipe(plumber())
     .pipe(gulpif(flags.DEV, sourcemaps.init()))
-    .pipe(babel({
-      presets: ['es2015']
-    }))
+    .pipe(babel())
     .pipe(concat('hammerslider.js'))
     .pipe(gulpif(flags.PROD, uglify({mangle: true})))
     .pipe(rename({suffix: '.min'}))
@@ -114,9 +112,7 @@ gulp.task('build:npm-js', () => {
 
     return gulp.src(paths.JS_SRC)
       .pipe(plumber())
-      .pipe(babel({
-        presets: ['es2015']
-      }))
+      .pipe(babel())
       .pipe(concat('index.js'))
       .pipe(defineModule('node', {wrapper: wrapper}))
       .pipe(gulp.dest(paths.ROOT))

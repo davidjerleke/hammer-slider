@@ -10,7 +10,6 @@
  */
 
 /* exported TouchEvents */
-
 function TouchEvents(_this, options) {
   'use strict';
 
@@ -113,7 +112,6 @@ function TouchEvents(_this, options) {
     eventType = type;
 
     if (checks[eventType](event)) return;
-
     if (preventDefault && eventType) preventDefault(event);
 
     addEvent(document, events[eventType][1], touchMove);
@@ -136,9 +134,8 @@ function TouchEvents(_this, options) {
   function touchMove(event) {
     getDiff(event);
 
-    //Prevent document from scrolling while swiping because
-    //mobile browsers flicker during transition.
-    document.ontouchmove = (e) => { preventDefault(e); };
+    //Prevent document from scrolling while swiping because some mobile browsers flicker during transition and scroll.
+    document[`on${events[eventType][1]}`] = (e) => { preventDefault(e); };
 
     if (!axis) {
       axis = (o.dragThreshold < Math.abs(diff.X)) ? 'X' : (o.dragThreshold < Math.abs(diff.Y)) ? 'Y' : false;
@@ -162,8 +159,8 @@ function TouchEvents(_this, options) {
     removeEvent(document, events[eventType][2], touchEnd);
     removeEvent(document, events[eventType][3], touchEnd);
 
-    //Enable document scrolling.
-    document.ontouchmove = (e) => { return true; };
+    //Enable document scrolling
+    document[`on${events[eventType][1]}`] = (e) => { return true; };
 
     o.end(event, direction, diff);
     axis = false;

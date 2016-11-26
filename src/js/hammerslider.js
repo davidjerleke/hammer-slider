@@ -11,7 +11,7 @@ function HammerSlider(_this, options) {
     nrOfSlides = 0,
     nrOfClones = 0,
     prefixedTransform,
-    helper;
+    u; // Utilities
 
 
   // Default options
@@ -40,6 +40,7 @@ function HammerSlider(_this, options) {
   options && mergeObjects(o, options);
 
 
+  // Class names
   const classes = {
     dotWrap: `${o.cssPrefix}__dots`,
     dotItem: `${o.cssPrefix}__dot`,
@@ -73,6 +74,11 @@ function HammerSlider(_this, options) {
   }
 
 
+  function transform(el, value, unit) {
+    el.style[prefixedTransform] = 'translateX(' + value + (unit ? unit : 'px') + ')';
+  }
+
+
   function getSupport(property) {
     const prefixes = ['', '-webkit-', '-moz-', '-ms-', '-o-'],
       div = document.createElement('div');
@@ -83,11 +89,6 @@ function HammerSlider(_this, options) {
       }
     }
     return false;
-  }
-
-
-  function transform(el, value, unit) {
-    el.style[prefixedTransform] = 'translateX(' + value + (unit ? unit : 'px') + ')';
   }
 
 
@@ -107,9 +108,10 @@ function HammerSlider(_this, options) {
   }
 
 
-  function makeHelpers() {
+  function makeUtilities() {
     return {
-      relativeSlideFunc: nrOfClones ? getRelativeClone : getRelativeSlide,
+      getNextSlideNr: o.rewind ? getNextRewindSlideNr : getNextSlideNr,
+      getRelativeSlideNr: nrOfClones ? getRelativeCloneNr : getRelativeSlideNr,
       nrSlidesInPercent: nrOfSlides * 100,
       lastSlide: nrOfSlides - 1,
       isLastSlide: function(nr) {
@@ -130,15 +132,15 @@ function HammerSlider(_this, options) {
       // through a slide transition to get rid of flicking when slide speed is 
       // not fast enough to hide it. 1 is forward and -1 is backward.
       flipPoints['1'] = {
-        slide: !pos ? helper.lastSlide : 0,
-        flipPoint: (helper.isLastSlide(pos) ? pos - 1 : pos) * slider.width * -1 + slider.width * -0.5,
-        toPos: !pos ? 0 : helper.nrSlidesInPercent
+        slide: !pos ? u.lastSlide : 0,
+        flipPoint: (u.isLastSlide(pos) ? pos - 1 : pos) * slider.width * -1 + slider.width * -0.5,
+        toPos: !pos ? 0 : u.nrSlidesInPercent
       };
 
       flipPoints['-1'] = {
-        slide: helper.isLastSlide(pos) ? 0 : !pos ? helper.lastSlide - 1 : helper.lastSlide,
+        slide: u.isLastSlide(pos) ? 0 : !pos ? u.lastSlide - 1 : u.lastSlide,
         flipPoint: pos * slider.width * -1 + slider.width * 0.5,
-        toPos: helper.isLastSlide(pos) ? 0 : helper.nrSlidesInPercent * -1
+        toPos: u.isLastSlide(pos) ? 0 : u.nrSlidesInPercent * -1
       };
     }
 
@@ -148,18 +150,18 @@ function HammerSlider(_this, options) {
       if (!o.rewind) {
         // Position slides so there's always one slide before current
         // and one after for the infinite carousel effect.
-        if (!i && helper.isLastSlide(pos)) {
-          slidePosition = helper.nrSlidesInPercent;
-        } else if (helper.isLastSlide(i) && !pos) {
-          slidePosition = helper.nrSlidesInPercent * -1;
+        if (!i && u.isLastSlide(pos)) {
+          slidePosition = u.nrSlidesInPercent;
+        } else if (u.isLastSlide(i) && !pos) {
+          slidePosition = u.nrSlidesInPercent * -1;
         }
       }
       transform(this.slides[i], slidePosition, '%');
-      this.slides[i].style.width = this.width + 'px';
+      this.slides[i].style.width = `${this.width}px`;
     });
 
     // Set container width to fit floated slides
-    slider.container.style.width = nrOfSlides * slider.width + 'px';
+    slider.container.style.width = `${nrOfSlides * slider.width}px`;
     // Set slider position to start slide
     transform(slider.container, pos * slider.width * -1);
     setActiveDot(pos);
@@ -184,12 +186,12 @@ function HammerSlider(_this, options) {
     mergeObjects(flipPoints[opposite], {
       flipPoint: currFlip.flipPoint,
       slide: currFlip.slide,
-      toPos: currFlip.toPos + helper.nrSlidesInPercent * opposite
+      toPos: currFlip.toPos + u.nrSlidesInPercent * opposite
     });
     currFlip.flipPoint += slider.width * opposite;
     
     if (updateFlipSlide(currFlip, direction)) {
-      currFlip.toPos += helper.nrSlidesInPercent * direction;
+      currFlip.toPos += u.nrSlidesInPercent * direction;
     }
   }
 
@@ -197,35 +199,36 @@ function HammerSlider(_this, options) {
   function updateFlipSlide(obj, direction) {
     switch (direction) {
       case 1:
-        obj.slide = helper.isLastSlide(obj.slide) ? 0 : ++obj.slide;
+        obj.slide = u.isLastSlide(obj.slide) ? 0 : ++obj.slide;
         return !obj.slide;
       case -1:
-        obj.slide = !obj.slide ? helper.lastSlide : --obj.slide;
-        return helper.isLastSlide(obj.slide);
+        obj.slide = !obj.slide ? u.lastSlide : --obj.slide;
+        return u.isLastSlide(obj.slide);
     }
   }
 
 
-  function getNextSlide(direction) {
-    // Change direction if rewind is true and it's the first
-    // slide moving backward or last slide moving forward.
-    if (o.rewind) {
-      if (direction === 1) {
-        if (helper.isLastSlide(slideIndex)) {
-          return 0;
-        }
-      } else {
-        if (!slideIndex) {
-          return helper.lastSlide;
-        }
-      }
-    }
-    // Default: move to given direction
+  function getNextSlideNr(direction) {
     return slideIndex + direction;
   }
 
 
-  function getRelativeSlide(slideNr) {
+  function getNextRewindSlideNr(direction) {
+    // Change direction if rewind is true and it's the first
+    // slide moving backward or last slide moving forward.
+    if (direction > 0) {
+      if (u.isLastSlide(slideIndex)) {
+        return 0;
+      }
+    } else if (!slideIndex) {
+        return u.lastSlide;
+    }
+    // Default: move to given direction
+    return getNextSlideNr(direction);
+  }
+
+
+  function getRelativeSlideNr(slideNr) {
     // To get next slide number relative to current position the offset from
     // base position needs to be calculated, since flipping slides causes
     // offsets for slideIndex when the infinite carousel effect is used.
@@ -238,7 +241,7 @@ function HammerSlider(_this, options) {
   }
 
 
-  function getRelativeClone(slideNr) {
+  function getRelativeCloneNr(slideNr) {
     const currPos = getCurrentPosition() / slider.width,
       currIndex = (currPos < 0) ? Math.ceil(Math.abs(currPos)) : Math.floor(currPos * -1),
       isEven = !(Math.abs(currIndex % nrOfSlides) % 2),
@@ -254,17 +257,16 @@ function HammerSlider(_this, options) {
     const relativeIndex = Math.abs(slideIndex % nrOfSlides),
       activeSlide = ((pos || getCurrentPosition()) < 0) ? relativeIndex : nrOfSlides - relativeIndex;
 
-    return activeSlide > helper.lastSlide ? 0 : activeSlide;
+    return activeSlide > u.lastSlide ? 0 : activeSlide;
   }
 
 
   function setPosition(nextSlide, relative, speed, autoSlide) {
-    let next = relative ? helper.relativeSlideFunc(nextSlide) : nextSlide,
+    let next = relative ? u.getRelativeSlideNr(nextSlide) : nextSlide,
       slideDistance = next * slider.width * -1,
       activeSlide;
 
-    // Stop slideshow whenever interaction  
-    // has occured before taking action.
+    // Stop slideshow whenever interaction has occured before taking action.
     stopSlideshow();
     slideIndex = next;
     activeSlide = getActiveSlideNr(slideDistance);
@@ -287,12 +289,11 @@ function HammerSlider(_this, options) {
 
     function animate() {
       if (currentTime === slideSpeed) {
-        if (slideIndex % nrOfSlides === o.startSlide) {
-          setupSlider();
-        }
+        (slideIndex % nrOfSlides === o.startSlide) && setupSlider();
+        shouldResumeSlideshow(autoSlide);
+
         // API Callback
         o.afterSlideChange && o.afterSlideChange(getActiveSlideNr());
-        shouldResumeSlideshow(autoSlide);
       } else {
         !o.rewind && flip(hasReachedFlipPoint(currPos));
         currentTime += increment;
@@ -314,7 +315,7 @@ function HammerSlider(_this, options) {
 
 
   function startSlideshow() {
-    slider.autoTimeOut = setTimeout(() => setPosition(getNextSlide(1), false, false, true), o.slideInterval);
+    slider.autoTimeOut = setTimeout(() => setPosition(u.getNextSlideNr(1), false, false, true), o.slideInterval);
   }
 
 
@@ -325,25 +326,23 @@ function HammerSlider(_this, options) {
 
 
   function shouldResumeSlideshow(autoSlide) {
-    if (o.slideShow && !o.stopAfterInteraction || autoSlide) {
-      startSlideshow();
-    }
+    (o.slideShow && !o.stopAfterInteraction || autoSlide) && startSlideshow();
   }
 
 
   function next() {
-    setPosition(getNextSlide(1));
+    setPosition(u.getNextSlideNr(1));
   }
 
 
   function prev() {
-    setPosition(getNextSlide(-1));
+    setPosition(u.getNextSlideNr(-1));
   }
 
 
   function setActiveDot(active) {
     if (o.dots) {
-      removeClass(slider.dotWrap.querySelector('.' + classes.dotActiveClass), classes.dotActiveClass);
+      removeClass(slider.dotWrap.querySelector(`.${classes.dotActiveClass}`), classes.dotActiveClass);
       addClass(slider.dots[!nrOfClones ? active : Math.abs(slideIndex % (nrOfSlides - nrOfClones))], classes.dotActiveClass);
     }
   }
@@ -380,7 +379,7 @@ function HammerSlider(_this, options) {
 
             if (!o.rewind) {
               flip(hasReachedFlipPoint(currPos));
-            } else if (!currentSlide && direction === 'right' || helper.isLastSlide(currentSlide) && direction === 'left') {
+            } else if (!currentSlide && direction === 'right' || u.isLastSlide(currentSlide) && direction === 'left') {
               // Resist dragging if it's first slide 
               // or last and if rewind is true
               currPos = startPos + (diff.X / 2.5);
@@ -395,9 +394,9 @@ function HammerSlider(_this, options) {
         // Only set new target slide if drag exceeds minimum drag distance
         if (Math.abs(diff.X) > o.minimumDragDistance) {
           if (direction === 'left') {
-            targetSlide = o.rewind && helper.isLastSlide(currentSlide) ? helper.lastSlide : getNextSlide(1);
+            targetSlide = o.rewind && u.isLastSlide(currentSlide) ? u.lastSlide : u.getNextSlideNr(1);
           } else if (direction === 'right') {
-            targetSlide = o.rewind && !currentSlide ? 0 : getNextSlide(-1);
+            targetSlide = o.rewind && !currentSlide ? 0 : u.getNextSlideNr(-1);
           }
         }
         setPosition(targetSlide, false, o.touchSpeed);
@@ -419,7 +418,7 @@ function HammerSlider(_this, options) {
     if (nrOfSlides <= 1 || !prefixedTransform) {
       forEachSlide(function(i) {
         this.container.children[i].style.width = '100%';
-        this.container.style.width = nrOfSlides * 100 + '%';
+        this.container.style.width = `${nrOfSlides * 100}%`;
       });
       // Remove hardware acceleration if transform is supported
       prefixedTransform && transform(slider.container, 0);
@@ -438,7 +437,7 @@ function HammerSlider(_this, options) {
     }
 
     // Make utilities
-    helper = makeHelpers();
+    u = makeUtilities();
     // Round slide speed to nearest 10th to work with raf animation loop design
     o.slideSpeed = o.slideSpeed < 2 ? 2 : Math.ceil(o.slideSpeed / 10) * 10;
 
@@ -489,7 +488,7 @@ function HammerSlider(_this, options) {
         this.dots.push(newDot);
 
         // Add dots to slider or given dotContainer element
-        if (helper.isLastSlide(i)) {
+        if (u.isLastSlide(i)) {
           this.dotWrap = o.dotContainer || document.createElement('ul');
           this.dotWrap.appendChild(dotFrag);
           
@@ -535,7 +534,8 @@ function HammerSlider(_this, options) {
   };
 }
 
-// If jQuery is present, create a plugin.
+
+// If jQuery is present, create a plugin
 if (window.jQuery) {
   (($) => {
     $.fn.HammerSlider = function(options) {
