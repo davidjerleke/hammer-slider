@@ -288,7 +288,7 @@ function HammerSlider(_this, options) {
       increment = 2;
 
     function animate() {
-      if (currentTime === slideSpeed) {
+      if (currentTime > slideSpeed) {
         (slideIndex % nrOfSlides === o.startSlide) && setupSlider();
         shouldResumeSlideshow(autoSlide);
 
@@ -296,8 +296,8 @@ function HammerSlider(_this, options) {
         o.afterSlideChange && o.afterSlideChange(getActiveSlideNr());
       } else {
         !o.rewind && flip(hasReachedFlipPoint(currPos));
-        currentTime += increment;
         currPos = parseInt(Math.easeOutQuad(currentTime, start, change, slideSpeed));
+        currentTime += increment;
         transform(slider.container, currPos);
         // Recursively call RAF until slide distance is met
         slider.animationFrame = requestAnimationFrame(animate);
@@ -330,13 +330,18 @@ function HammerSlider(_this, options) {
   }
 
 
+  function move(direction) {
+    setPosition(u.getNextSlideNr(direction));
+  }
+
+
   function next() {
-    setPosition(u.getNextSlideNr(1));
+    move(1);
   }
 
 
   function prev() {
-    setPosition(u.getNextSlideNr(-1));
+    move(-1);
   }
 
 
