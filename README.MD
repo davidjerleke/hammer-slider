@@ -1,4 +1,4 @@
-#HammerSlider touch ![Travis-ci](https://travis-ci.org/davidcetinkaya/hammer-slider.svg?branch=master) [![npm version](https://badge.fury.io/js/hammer-slider.svg)](https://badge.fury.io/js/hammer-slider)
+# HammerSlider touch ![Travis-ci](https://travis-ci.org/davidcetinkaya/hammer-slider.svg?branch=master) [![npm version](https://badge.fury.io/js/hammer-slider.svg)](https://badge.fury.io/js/hammer-slider)
 
 [Check out the demo](https://codepen.io/DavidCetinkaya/full/oYgxgG/)
 
@@ -14,17 +14,17 @@ Comes with customizable settings and its own API for extensibility.
 - API and callback functions for extensibility.
 - Animates with CSS3 transforms and requestAnimationFrame for smooth sliding.
 
-##Install
+## Install
 
-```
-npm install hammer-slider
+```bash
+$ npm install hammer-slider
 ```
 
-##Kit
+## Kit
 - **[hammerslider.min.js](https://raw.githubusercontent.com/davidcetinkaya/hammer-slider/master/dist/hammerslider.min.js)** - production script (requestAnimationFrame polyfill included)
 - **[hammerslider.required.css](https://raw.githubusercontent.com/davidcetinkaya/hammer-slider/master/dist/hammerslider.required.css)** - required styles for proper functioning
 
-##Usage
+## Usage
 
 HTML markup:
 
@@ -58,7 +58,7 @@ $('#hammer-slider').HammerSlider();
 
 You may place anything you want within the slides.
 
-##Settings
+## Settings
 
 HammerSlider accepts an object as an optional second parameter. Default settings are:
 
@@ -69,19 +69,19 @@ HammerSlider accepts an object as an optional second parameter. Default settings
 
   //Slide transition speed after touch interaction
   touchSpeed: 50,
-  
+
   //Slide number to start with, zero based index
   startSlide: 0,
-  
+
   //Auto sliding feature
   slideShow: false,
-  
+
   //Interval for auto sliding, ms
   slideInterval: 5000,
-  
+
   //Stop slideShow after touch, click or resize
   stopAfterInteraction: true,
-  
+
   //Disable infinite carousel effect
   rewind: false,
 
@@ -93,7 +93,7 @@ HammerSlider accepts an object as an optional second parameter. Default settings
 
   //Minimum distance required before preventing vertical scroll, pixels
   dragThreshold: 10,
-  
+
   //Prefix used for generated elements such as dots and mouse-drag-enabled etc.
   //Note that all added classes use the BEM naming convention.
   //Change the stylesheet according to this!
@@ -101,29 +101,29 @@ HammerSlider accepts an object as an optional second parameter. Default settings
 
   //Generate dots
   dots: false,
-  
-  //Element that will contain dots. By default it will be generated and appended to slider root element. 
+
+  //Element that will contain dots. By default it will be generated and appended to slider root element.
   //Can be anywhere on the page.
   dotContainer: undefined,
-  
+
   //Element that contain slides. First child of slider root element will be used by default.
   slideContainer: undefined,
 
   //Callback function, runs before slide transition when slide change is triggered.
   //Recieves upcoming slide number as parameter.
   beforeSlideChange: undefined,
-  
+
   //Callback function, runs after a slide transition is finished.
   //Receives current slide number as parameter.
   afterSlideChange: undefined,
-  
+
   //Callback function, runs after slider is set up.
   //Receives total number of slides as parameter.
   onSetup: undefined
 }
 ```
 
-##API
+## API
 
 HammerSlider exposes a set of functions upon setup that can be used to control the slider externally:
 
@@ -147,13 +147,13 @@ getActiveSlideNr();
 //Second parameter is for custom slidespeed. If not provided default slidespeed will be used.
 moveTo(number, speed);
 
-//Recalculates slider's and slides' widths and resets slider position to slide number parameter. 
-//Useful when slider is used in a lightbox or when container width changes. 
+//Recalculates slider's and slides' widths and resets slider position to slide number parameter.
+//Useful when slider is used in a lightbox or when container width changes.
 //This is invoked on window resize and orientation change.
 setupSlider(number);
 ```
 
-##Examples
+## Examples
 
 JavaScript
 
@@ -174,7 +174,7 @@ document.getElementById('next-btn').addEventListener('click', slider.next, false
 
 JavaScript + jQuery
 
-```javascript			
+```javascript
 const slider = $('#hammer-slider').HammerSlider({
   slideSpeed: 60,
   slideShow: true,
@@ -189,6 +189,6 @@ const slider = $('#hammer-slider').HammerSlider({
 $('#next-btn').on('click', slider.data('HammerSlider').next);
 ```
 
-##License
+## License
 
 [MIT license](http://opensource.org/licenses/MIT)
