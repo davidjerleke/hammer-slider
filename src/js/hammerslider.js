@@ -7,6 +7,7 @@ function HammerSlider(_this, options) {
       dots: []
     },
     slidePercentWidths = [],
+    stopPositions = [],
     flipPoints = {},
     slideIndex = 0,
     nrOfSlides = 0,
@@ -158,7 +159,8 @@ function HammerSlider(_this, options) {
     const slideWidths = [];
 
     forEachSlide(function(i) {
-      slideWidths.push(this.slides[i].offsetWidth);
+      const slideWidth = Math.round((this.slides[i].offsetWidth / _this.offsetWidth) * 100) / 100; // round to two decimals
+      slideWidths.push(slideWidth * 100);
 
       let slidePosition = 0;
 
@@ -179,10 +181,26 @@ function HammerSlider(_this, options) {
     });
 
     const totalWidth = slideWidths.reduce((prevWidth, currentWidth) => prevWidth + currentWidth);
-    const containerWidth = totalWidth / slider.width * 100;
-    slider.container.style.width = `${containerWidth}%`;
+    slider.container.style.width = `${totalWidth}%`;
 
-    transform(slider.container, pos * (100 / nrOfSlides) * -1);
+    const containerWidthOfWrapper = (100 / totalWidth) * 100;
+
+    // Calculate stopPositions
+    let totalPosition = 0;
+    forEachSlide(function(i) {
+      const baseSlidePosition = containerWidthOfWrapper - (100 / nrOfSlides);
+      const finalPosition = baseSlidePosition / 2;
+
+      if (i > 0) {
+        totalPosition -= (100 / nrOfSlides);
+      } else {
+        totalPosition = finalPosition;
+      }
+
+      stopPositions.push(totalPosition);
+    });
+
+    transform(slider.container, stopPositions[pos], '3d');
   }
 
 
@@ -276,7 +294,7 @@ function HammerSlider(_this, options) {
     stopSlideshow();
 
 
-    const slideDistance = next * (100 / nrOfSlides) * -1;
+    const slideDistance = next * (100 / nrOfSlides) * -1 + stopPositions[0];
     slideIndex = next;
     // API Callback
     //o.beforeSlideChange && o.beforeSlideChange(activeSlide);
@@ -307,7 +325,7 @@ function HammerSlider(_this, options) {
       else {
         !o.rewind && flip(hasReachedFlipPoint(currPos));
 
-        currPos = Math.easeOutQuad(currentTime, start, change, slideSpeed);
+        currPos = easeOutQuint(currentTime, start, change, slideSpeed);
         currentTime += increment;
         transform(slider.container, currPos, '3d');
         // Recursively call RAF until slide distance is met
@@ -319,9 +337,11 @@ function HammerSlider(_this, options) {
   }
 
 
-  Math.easeOutQuad = (t, b, c, d) => {
-    t /= d;
-    return -c * t * (t - 2) + b;
+  // try quint easing
+  function easeOutQuint(t, b, c, d) {
+      t /= d;
+      t--;
+      return c*(t*t*t*t*t + 1) + b;
   };
 
 
