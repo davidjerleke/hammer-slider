@@ -6,7 +6,8 @@ function HammerSlider(_this, options) {
     width: undefined,
     contentWidth: undefined,
     slides: [],
-    dots: []
+    dots: [],
+    listeners: [],
   },
 
   slideData = [],
@@ -91,10 +92,10 @@ function HammerSlider(_this, options) {
   }
 
 
-  function translate(el, value, threeD) {
-    const type = threeD ? '3d' : 'X';
-    el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
-    // return (value) => el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
+  function getItemsAsArray(arrayLikeCollection) {
+    const returnArray = [];
+    forEachItem(arrayLikeCollection, (item) => { returnArray.push(item) });
+    return returnArray;
   }
 
 
@@ -116,6 +117,60 @@ function HammerSlider(_this, options) {
   }
 
 
+  function translate(el, value, threeD) {
+    const type = threeD ? '3d' : 'X';
+    el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
+    // return (value) => el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
+  }
+
+
+  function setItemWidth(containerWidth) {
+    return (item, index) => {
+      const width = Math.round(((item.element.offsetWidth / containerWidth) * 100));
+      return mergeObjects(item, { width });
+    };
+  }
+
+
+  function setItemAlignment(alignment) {
+    const align = {
+      left: (width) => 0,
+      center: (width) => (100 - width) / 2,
+      right: (width) => 100 - width
+    };
+    return alignment ? align[alignment] : align['center'];
+  }
+
+
+  function setDistanceToItem(alignItem) {
+    return (item, index, itemArray) => {
+      const distanceToThis = itemArray.reduce((accumulator, innerItem, innerIndex) => {
+        if (innerIndex > index) return accumulator + 0;
+        return accumulator + (innerIndex === index ? alignItem(innerItem.width) : -innerItem.width);
+      }, 0);
+      return mergeObjects(item, { distanceToThis });
+    };
+  }
+
+
+  function setDistanceBetweenItems(lastItemIndex) {
+    return (item, index, itemArray) => {
+      const nextItemIndex = !index ? lastItemIndex : index - 1;
+      const distanceToNext = itemArray[nextItemIndex].distanceToThis - item.distanceToThis;
+      return mergeObjects(item, { distanceToNext });
+    };
+  }
+
+
+  function setItemDistanceToFlip(itemArray) {
+    return (item) => {
+      const distanceToFlip = itemArray.reduce((accumulator, current) =>
+        (accumulator + (current.width / item.width) * 100), 0);
+      return mergeObjects(item, { distanceToFlip });
+    };
+  }
+
+
   function makeUtilities() {
     return {
       lastSlide: nrOfSlides - 1,
@@ -128,84 +183,40 @@ function HammerSlider(_this, options) {
 
   function setupSlider(startSlide) {
     const pos = startSlide || o.startSlide;
-    slider.width = slider.container.offsetWidth;
-    currentSlideNr = pos;
 
+    // Gather calculations
+    const setSlideWidth = setItemWidth(slider.container.offsetWidth);
+    const setDistanceToSlide = setDistanceToItem(setItemAlignment(o.slideAlign));
+    const setDistanceBetweenSlides = setDistanceBetweenItems(nrOfSlides - 1);
+
+    // Store items & make calculations
+    slideData = getItemsAsArray(slider.slides)
+      .map(slide => ({ element: slide }))
+      .map(setSlideWidth)
+      .map(setDistanceToSlide)
+      .map(setDistanceBetweenSlides);
+
+    // Infinite sliding specific calculations
     if (!o.rewind) {
-    }
+      const firstSlide = slideData[0];
+      const lastSlide = slideData[nrOfSlides - 1];
+      const setSlideDistanceToFlip = setItemDistanceToFlip(slideData);
 
-    // Store items in slideData array
-    slider.slides.forEach((slide) => slideData.push({ item: slide }));
+      slider.contentWidth = slideData.reduce((accumulator, slide) => accumulator + slide.width, 0);
+      firstSlide.distanceToNext += slider.contentWidth;
+      [firstSlide, lastSlide].map(setSlideDistanceToFlip);
 
-    // Calculate slide percentage widths
-    slideData = slideData.map((slide) => {
-      const width = Math.round(((slide.item.offsetWidth / slider.width) * 100));
-      return mergeObjects(slide, { width });
-    });
-
-    // Calculate slider container content percentage width
-    slider.contentWidth = slideData.reduce((total, slide) => total + slide.width, 0);
-
-    // Calculate positions where slides are in middle of wrapper
-    slideData = slideData.map((slide, number) => {
-      const distanceToThis = slideData.reduce((total, innerSlide, innerNumber) => {
-        if (innerNumber > number) return total + 0;
-        return total + (innerNumber === number ? ((100 - innerSlide.width) / 2) : -innerSlide.width);
-      }, 0);
-      return mergeObjects(slide, { distanceToThis });
-    });
-
-    // Calculate distance diff between slide and it's next sibling
-    slideData = slideData.map((slide, number) => {
-      const nextSlideNumber = !number ? nrOfSlides - 1 : number - 1;
-      const lastSlideDistance = !number ? slider.contentWidth : 0;
-      const distanceToNext = slideData[nextSlideNumber].distanceToThis - slide.distanceToThis + lastSlideDistance;
-
-      return mergeObjects(slide, { distanceToNext });
-    });
-
-    // Calculate flip to positions
-    slideData = slideData.map((slide) => {
-      const flipTo = slideData.reduce((total, current) => {
-        return (total + (current.width / slide.width) * 100);
-      }, 0);
-      return mergeObjects(slide, { flipTo });
-    });
-
-
-    // Position slides
-    if (!o.rewind) {
-      if (u.isLastSlide(pos)) translate(slider.slides[0], slideData[0].flipTo);
-      if (!pos) translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].flipTo * -1);
+      // Position slides
+      if (u.isLastSlide(pos)) translate(slider.slides[0], slideData[0].distanceToFlip);
+      if (!pos) translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
     }
 
     // Set slider start position and active dot
-    translate(slider.container, slideData[pos].distanceToThis);
+    currentSlideNr = pos;
     currentDistance = slideData[pos].distanceToThis;
+    translate(slider.container, slideData[pos].distanceToThis);
     setActiveDot(pos);
-
-    /*
-    flipPoints['1'] = {
-      slide: nrOfSlides - 1,
-      flipPoint: slideData[0].distanceToThis - slideData[0].width / 2,
-      toPos: 0
-    };
-
-    flipPoints['-1'] = {
-      slide: nrOfSlides - 2,
-      flipPoint: slideData[0].width - slideData[0].distanceToThis,
-      toPos: slideData[nrOfSlides - 2].flipTo * -1
-    };
-    */
   }
-
-
-  /*function hasReachedFlipPoint(position) {
-    const forwardFlip = flipPoints[1].flipPoint,
-      backwardFlip = flipPoints[-1].flipPoint;
-    // Return direction if forward or backward flip point has passed
-    return position < forwardFlip ? 1 : position > backwardFlip ? -1 : false;
-  }*/
 
 
   function flip(position, direction) {
@@ -216,17 +227,17 @@ function HammerSlider(_this, options) {
       }
 
       if (position < (slideData[nrOfSlides - 2].distanceToThis - slideData[nrOfSlides - 2].width / 2)) {
-        translate(slider.slides[0], slideData[0].flipTo);
+        translate(slider.slides[0], slideData[0].distanceToFlip);
       }
 
       if (position < (slideData[nrOfSlides - 1].distanceToThis - slideData[nrOfSlides - 1].width / 2)) {
         translate(slider.slides[0], 0);
-        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].flipTo * -1);
+        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
         return true;
       }
     } else {
       if (position > (slideData[nrOfSlides - 3].distanceToThis - slideData[nrOfSlides - 3].width / 2)) {
-        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].flipTo * -1);
+        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
       }
 
       if (position > (slideData[nrOfSlides - 2].distanceToThis - slideData[nrOfSlides - 2].width / 2)) {
@@ -234,7 +245,7 @@ function HammerSlider(_this, options) {
       }
 
       if (position > slideData[0].distanceToThis + slideData[0].width / 2) {
-        translate(slider.slides[0], slideData[0].flipTo);
+        translate(slider.slides[0], slideData[0].distanceToFlip);
         translate(slider.slides[nrOfSlides - 1], 0);
         return true;
       }
@@ -249,11 +260,6 @@ function HammerSlider(_this, options) {
       return u.lastSlide;
     }
     return slideNumber + direction;
-  }
-
-
-  function getSlideDistance(direction, jumpTo) {
-
   }
 
 
@@ -303,7 +309,6 @@ function HammerSlider(_this, options) {
           currentDistance += slider.contentWidth * direction;
           start += slider.contentWidth * direction;
         }
-
         currPos = easeOutQuint(currentTime, start, change, slideSpeed);
         currentTime += increment;
         translate(slider.container, currPos, true);
@@ -420,8 +425,9 @@ function HammerSlider(_this, options) {
 
   function setup() {
     slider.container = _this.querySelector(`.${classes.container}`);
-    const slides = slider.container.querySelectorAll(`.${classes.slide}`);
-    forEachItem(slides, function(slide) { slider.slides.push(slide) });
+    slider.slides = getItemsAsArray(slider.container.querySelectorAll(`.${classes.slide}`));
+
+
     nrOfSlides = slider.slides.length;
     prefixedTransform = getSupportedProperty('transform');
 
@@ -474,21 +480,19 @@ function HammerSlider(_this, options) {
     }
 
 
-
-
     // Listen for window resize events
-    addEvent(window, 'resize', onWidthChange);
-    addEvent(window, 'orientationchange', onWidthChange);
+    //addEvent(window, 'resize', onWidthChange);
+    //addEvent(window, 'orientationchange', onWidthChange);
 
     // Listen for touch events
     //touchInit();
     setupSlider();
 
-    o.mouseDrag && addClass(slider.container, classes.mouseDrag);
-    o.slideShow && startSlideshow();
+    if (o.mouseDrag) addClass(slider.container, classes.mouseDrag);
+    if (o.slideShow) startSlideshow();
 
     // API Callback after setup, expose API first with timeout
-    o.onSetup && setTimeout(() => o.onSetup(nrOfSlides), 0);
+    if (o.onSetup) setTimeout(() => o.onSetup(nrOfSlides), 0);
   }
 
 
