@@ -2,28 +2,24 @@ function HammerSlider(_this, options) {
   'use strict';
 
   // Main declarations
-  let slider = {
-    width: undefined,
+  const SLIDER = {
     contentWidth: undefined,
-    slides: [],
-    dots: [],
-    listeners: [],
-  },
-
-  slideData = [],
-  currentDistance = 0,
-
-  flipPoints = {},
-  slideIndex = 0,
-  nrOfSlides = 0,
-  nrOfClones = 0,
-  currentSlideNr = 0,
-  prefixedTransform,
-  u; // Utilities
+    container: undefined,
+    slides: undefined,
+    dotContainer: undefined,
+    dots: undefined,
+    slideData: undefined,
+    transform: undefined,
+    currentSlideIndex: undefined,
+    lastSlideIndex: undefined,
+    isLastSlide: undefined,
+    currentDistance: undefined,
+    eventListeners: undefined
+  };
 
 
   // Default options
-  const o = {
+  const OPTIONS = {
     slideShow: false,
     slideInterval: 5000,
     slideSpeed: 1200,
@@ -33,8 +29,8 @@ function HammerSlider(_this, options) {
     minimumDragDistance: 30,
     stopAfterInteraction: true,
     rewind: false,
-    dots: false,
     mouseDrag: false,
+    dotContainer: undefined,
     beforeSlideChange: undefined,
     afterSlideChange: undefined,
     onSetup: undefined,
@@ -43,18 +39,18 @@ function HammerSlider(_this, options) {
 
 
   // Merge user options into defaults
-  options && mergeObjects(o, options);
+  options && mergeObjects(OPTIONS, options);
 
 
   // Class names
-  const classes = {
-    dotWrap: `${o.classPrefix}__dots`,
-    dotItem: `${o.classPrefix}__dot`,
-    slide: `${o.classPrefix}__slide`,
-    container: `${o.classPrefix}__container`,
-    dotActiveClass: `${o.classPrefix}__dot--is-active`,
-    dragging: `${o.classPrefix}__container--is-dragging`,
-    mouseDrag: `${o.classPrefix}__container--mouse-drag-enabled`
+  const CLASSES = {
+    container: `${OPTIONS.classPrefix}__container`,
+    slide: `${OPTIONS.classPrefix}__slide`,
+    dotContainer: `${OPTIONS.classPrefix}__dots`,
+    dotItem: `${OPTIONS.classPrefix}__dot`,
+    dotActiveClass: `${OPTIONS.classPrefix}__dot--is-active`,
+    dragging: `${OPTIONS.classPrefix}__container--is-dragging`,
+    mouseDrag: `${OPTIONS.classPrefix}__container--mouse-drag-enabled`
   };
 
 
@@ -68,18 +64,24 @@ function HammerSlider(_this, options) {
   }
 
 
-  function addEvent(el, event, func, bool) {
-    el && el.addEventListener(event, func, !!bool);
+  function getElementChildren(element, selector, all) {
+    return element[`querySelector${(all ? 'All' : '')}`](selector);
   }
 
 
-  function addClass(el, className) {
-    el && el.classList.add(className);
+  function addEvent(element, event, func, bool) {
+    element.addEventListener(event, func, !!bool);
+    return { remove: () => element.removeEventListener(event, func, !!bool) };
   }
 
 
-  function removeClass(el, className) {
-    el && el.classList.remove(className);
+  function addClass(element, className) {
+    element.classList.add(className);
+  }
+
+
+  function removeClass(element, className) {
+    element && element.classList.remove(className);
   }
 
 
@@ -92,9 +94,9 @@ function HammerSlider(_this, options) {
   }
 
 
-  function getItemsAsArray(arrayLikeCollection) {
+  function getItemsAsArray(nodeList) {
     const returnArray = [];
-    forEachItem(arrayLikeCollection, (item) => { returnArray.push(item) });
+    forEachItem(nodeList, (item) => { returnArray.push(item) });
     return returnArray;
   }
 
@@ -111,16 +113,16 @@ function HammerSlider(_this, options) {
 
 
   function getCurrentPosition() {
-    const transform = window.getComputedStyle(slider.container, null).getPropertyValue(prefixedTransform);
+    const transform = window.getComputedStyle(SLIDER.container, null).getPropertyValue(SLIDER.transform);
     const transformType = transform.match('matrix3d') ? 12 : 4;
-    return parseFloat(transform.split(',')[transformType]) / slider.container.offsetWidth * 100;
+    return parseFloat(transform.split(',')[transformType]) / SLIDER.container.offsetWidth * 100;
   }
 
 
-  function translate(el, value, threeD) {
+  function translate(element, value, threeD) {
     const type = threeD ? '3d' : 'X';
-    el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
-    // return (value) => el.style[prefixedTransform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
+    element.style[SLIDER.transform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
+    // return (value) => element.style[SLIDER.transform] = `translate${type}(${value}%${threeD ? ',0,0' : ''})`;
   }
 
 
@@ -164,203 +166,174 @@ function HammerSlider(_this, options) {
 
   function setItemDistanceToFlip(itemArray) {
     return (item) => {
-      const distanceToFlip = itemArray.reduce((accumulator, current) =>
-        (accumulator + (current.width / item.width) * 100), 0);
+      const distanceToFlip = itemArray.reduce((accumulator, innerItem) =>
+        (accumulator + (innerItem.width / item.width) * 100), 0);
       return mergeObjects(item, { distanceToFlip });
     };
   }
 
 
-  function makeUtilities() {
-    return {
-      lastSlide: nrOfSlides - 1,
-      isLastSlide: function(nr) {
-        return nr === this.lastSlide;
-      }
-    };
-  }
-
-
-  function setupSlider(startSlide) {
-    const pos = startSlide || o.startSlide;
-
+  function setSlideData(container, slides, lastSlideIndex) {
     // Gather calculations
-    const setSlideWidth = setItemWidth(slider.container.offsetWidth);
-    const setDistanceToSlide = setDistanceToItem(setItemAlignment(o.slideAlign));
-    const setDistanceBetweenSlides = setDistanceBetweenItems(nrOfSlides - 1);
+    const setSlideWidth = setItemWidth(container.offsetWidth);
+    const setDistanceToSlide = setDistanceToItem(setItemAlignment(OPTIONS.slideAlign));
+    const setDistanceBetweenSlides = setDistanceBetweenItems(lastSlideIndex);
 
-    // Store items & make calculations
-    slideData = getItemsAsArray(slider.slides)
+    // Copy items & make calculations
+    const slideData = [...slides]
       .map(slide => ({ element: slide }))
       .map(setSlideWidth)
       .map(setDistanceToSlide)
       .map(setDistanceBetweenSlides);
 
     // Infinite sliding specific calculations
-    if (!o.rewind) {
+    if (!OPTIONS.rewind) {
       const firstSlide = slideData[0];
-      const lastSlide = slideData[nrOfSlides - 1];
+      const lastSlide = slideData[lastSlideIndex];
       const setSlideDistanceToFlip = setItemDistanceToFlip(slideData);
 
-      slider.contentWidth = slideData.reduce((accumulator, slide) => accumulator + slide.width, 0);
-      firstSlide.distanceToNext += slider.contentWidth;
+      SLIDER.contentWidth = slideData.reduce((accumulator, slide) => accumulator + slide.width, 0);
+      firstSlide.distanceToNext += SLIDER.contentWidth;
       [firstSlide, lastSlide].map(setSlideDistanceToFlip);
-
-      // Position slides
-      if (u.isLastSlide(pos)) translate(slider.slides[0], slideData[0].distanceToFlip);
-      if (!pos) translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
     }
-
-    // Set slider start position and active dot
-    currentSlideNr = pos;
-    currentDistance = slideData[pos].distanceToThis;
-    translate(slider.container, slideData[pos].distanceToThis);
-    setActiveDot(pos);
+    return slideData;
   }
 
 
   function flip(position, direction) {
     /* Clean this mess the HELL up */
     if (direction === 1) {
-      if (position < (slideData[nrOfSlides - 3].distanceToThis - slideData[nrOfSlides - 3].width / 2)) {
-        translate(slider.slides[nrOfSlides - 1], 0);
+      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex - 2].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 2].width / 2)) {
+        translate(SLIDER.slides[SLIDER.lastSlideIndex], 0);
       }
 
-      if (position < (slideData[nrOfSlides - 2].distanceToThis - slideData[nrOfSlides - 2].width / 2)) {
-        translate(slider.slides[0], slideData[0].distanceToFlip);
+      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex - 1].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 1].width / 2)) {
+        translate(SLIDER.slides[0], SLIDER.slideData[0].distanceToFlip);
       }
 
-      if (position < (slideData[nrOfSlides - 1].distanceToThis - slideData[nrOfSlides - 1].width / 2)) {
-        translate(slider.slides[0], 0);
-        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
+      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex].width / 2)) {
+        translate(SLIDER.slides[0], 0);
+        translate(SLIDER.slides[SLIDER.lastSlideIndex], SLIDER.slideData[SLIDER.lastSlideIndex].distanceToFlip * -1);
         return true;
       }
     } else {
-      if (position > (slideData[nrOfSlides - 3].distanceToThis - slideData[nrOfSlides - 3].width / 2)) {
-        translate(slider.slides[nrOfSlides - 1], slideData[nrOfSlides - 1].distanceToFlip * -1);
+      if (position > (SLIDER.slideData[SLIDER.lastSlideIndex - 2].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 2].width / 2)) {
+        translate(SLIDER.slides[SLIDER.lastSlideIndex], SLIDER.slideData[SLIDER.lastSlideIndex].distanceToFlip * -1);
       }
 
-      if (position > (slideData[nrOfSlides - 2].distanceToThis - slideData[nrOfSlides - 2].width / 2)) {
-        translate(slider.slides[0], 0);
+      if (position > (SLIDER.slideData[SLIDER.lastSlideIndex - 1].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 1].width / 2)) {
+        translate(SLIDER.slides[0], 0);
       }
 
-      if (position > slideData[0].distanceToThis + slideData[0].width / 2) {
-        translate(slider.slides[0], slideData[0].distanceToFlip);
-        translate(slider.slides[nrOfSlides - 1], 0);
+      if (position > SLIDER.slideData[0].distanceToThis + SLIDER.slideData[0].width / 2) {
+        translate(SLIDER.slides[0], SLIDER.slideData[0].distanceToFlip);
+        translate(SLIDER.slides[SLIDER.lastSlideIndex], 0);
         return true;
       }
     }
   }
 
 
-  function getNextSlideNumber(slideNumber, direction) {
-    if (direction > 0) {
-      if (u.isLastSlide(slideNumber)) return 0;
-    } else if (!slideNumber) {
-      return u.lastSlide;
-    }
-    return slideNumber + direction;
+  function isLastItemIndex(lastIndex) {
+    return (index) => index === lastIndex;
   }
 
 
-  function setPosition(direction, jumpTo) {
-    let nextSlideNumber;
-    let slideDistance;
+  function getNextItemIndex(currentItemIndex, direction) {
+    if (direction === 1) {
+      if (SLIDER.isLastSlide(currentItemIndex)) return 0;
+    } else if (!currentItemIndex) {
+      return SLIDER.lastSlideIndex;
+    }
+    return currentItemIndex + direction;
+  }
+
+
+  function slideTo(direction, jumpTo) {
+    /* Clean this mess the HELL up */
+    let currentSlideIndex;
+    let currentDistance;
 
     if (typeof jumpTo === 'undefined') {
-      nextSlideNumber = getNextSlideNumber(currentSlideNr, direction);
-      const index = nextSlideNumber + 1 > nrOfSlides - 1 ? 0 : nextSlideNumber + 1;
-      const distance = direction === 1 ? slideData[nextSlideNumber].distanceToNext : slideData[index].distanceToNext;
-      slideDistance = currentDistance - distance * direction;
+      currentSlideIndex = getNextItemIndex(SLIDER.currentSlideIndex, direction);
+      const index = currentSlideIndex + 1 > SLIDER.lastSlideIndex ? 0 : currentSlideIndex + 1;
+      const distance = direction === 1 ? SLIDER.slideData[currentSlideIndex].distanceToNext : SLIDER.slideData[index].distanceToNext;
+      currentDistance = SLIDER.currentDistance - distance * direction;
     } else {
-      direction = jumpTo - currentSlideNr > 0 ? 1 : -1;
-      nextSlideNumber = jumpTo;
-      slideDistance = slideData[jumpTo].distanceToThis;
+      direction = jumpTo - SLIDER.currentSlideIndex > 0 ? 1 : -1;
+      currentSlideIndex = jumpTo;
+      currentDistance = SLIDER.slideData[jumpTo].distanceToThis;
     }
 
-    currentDistance = slideDistance;
-    currentSlideNr = nextSlideNumber;
-    // API Callback
-    //o.beforeSlideChange && o.beforeSlideChange(activeSlide);
+    mergeObjects(SLIDER, { currentSlideIndex, currentDistance });
+    if (OPTIONS.beforeSlideChange) OPTIONS.beforeSlideChange(currentSlideIndex);
 
     stopSlideshow();
-    setActiveDot(currentSlideNr);
-    slide(slideDistance, direction);
+    setActiveDot(currentSlideIndex);
+    animate(currentDistance, direction);
   }
 
 
-  function slide(slideDistance, direction) {
-    let slideSpeed = o.slideSpeed,
+  function animate(slideDistance, direction) {
+    /* Clean this mess the HELL up */
+    let slideSpeed = OPTIONS.slideSpeed,
       currPos = getCurrentPosition(),
       start = currPos,
       change = slideDistance - start,
       currentTime = 0,
       increment = 20;
 
-    function animate() {
+    function render() {
       // Sliding ended
       if (currentTime > slideSpeed) {
         //shouldResumeSlideshow(autoSlide);
-        //o.afterSlideChange && o.afterSlideChange();
+        //OPTIONS.afterSlideChange && OPTIONS.afterSlideChange();
       }
       // Else
       else {
         if (flip(currPos, direction)) {
-          currentDistance += slider.contentWidth * direction;
-          start += slider.contentWidth * direction;
+          SLIDER.currentDistance += SLIDER.contentWidth * direction;
+          start += SLIDER.contentWidth * direction;
         }
         currPos = easeOutQuint(currentTime, start, change, slideSpeed);
         currentTime += increment;
-        translate(slider.container, currPos, true);
-        slider.animationFrame = requestAnimationFrame(animate);
+        translate(SLIDER.container, currPos, true);
+        SLIDER.animationFrame = requestAnimationFrame(render);
       }
     }
-    slider.animationFrame = requestAnimationFrame(animate);
+    SLIDER.animationFrame = requestAnimationFrame(render);
   }
 
 
   function easeOutQuint(t, b, c, d) {
     t /= d;
     t--;
-    return c*(t*t*t*t*t + 1) + b;
+    return c * (t * t * t * t * t + 1) + b;
   };
 
 
   function startSlideshow() {
-    slider.autoTimeOut = setTimeout(() => setPosition(u.getNextSlideNr(1), false, false, true), o.slideInterval);
+    mergeObjects(SLIDER, {
+      autoTimeOut: setTimeout(() => slideTo(1), OPTIONS.slideInterval)
+    });
   }
 
 
   function stopSlideshow() {
-    cancelAnimationFrame(slider.animationFrame);
-    clearTimeout(slider.autoTimeOut);
+    cancelAnimationFrame(SLIDER.animationFrame);
+    clearTimeout(SLIDER.autoTimeOut);
   }
 
 
   function shouldResumeSlideshow(autoSlide) {
-    (o.slideShow && !o.stopAfterInteraction || autoSlide) && startSlideshow();
+    if ((OPTIONS.slideShow && !OPTIONS.stopAfterInteraction) || autoSlide) startSlideshow();
   }
 
 
-  function move(direction) {
-    setPosition(direction);
-  }
-
-
-  function next() {
-    move(1);
-  }
-
-
-  function prev() {
-    move(-1);
-  }
-
-
-  function setActiveDot(active) {
-    if (o.dots) {
-      removeClass(slider.dotWrap.querySelector(`.${classes.dotActiveClass}`), classes.dotActiveClass);
-      addClass(slider.dots[!nrOfClones ? active : Math.abs(slideIndex % (nrOfSlides - nrOfClones))], classes.dotActiveClass);
+  function setActiveDot(index) {
+    if (OPTIONS.dots) {
+      removeClass(getElementChildren(SLIDER.dotContainer, `.${CLASSES.dotActiveClass}`), CLASSES.dotActiveClass);
+      addClass(SLIDER.dots[index], CLASSES.dotActiveClass);
     }
   }
 
@@ -372,141 +345,137 @@ function HammerSlider(_this, options) {
   }
 
 
-  function touchInit() {
+  /*function touchInit() {
     let startPos,
       currPos,
       currentSlide;
 
-    TouchEvents(slider.container, {
-      mouse: o.mouseDrag,
-      dragThreshold: o.dragThreshold,
+    TouchEvents(SLIDER.container, {
+      mouse: OPTIONS.mouseDrag,
+      dragThreshold: OPTIONS.dragThreshold,
       // Pass touch state actions
       start: (event) => {
         stopSlideshow();
-        startPos = getCurrentPosition() / slider.container.offsetWidth * 100;
+        startPos = getCurrentPosition() / SLIDER.container.offsetWidth * 100;
         currentSlide = slideIndex % nrOfSlides;
         // Add drag class
-        addClass(slider.container, classes.dragging);
+        addClass(SLIDER.container, CLASSES.dragging);
       },
       move: (event, direction, diff) => {
         if (direction === 'left' || direction === 'right') {
-          const horizontalDiff = diff.X / slider.container.offsetWidth * 100;
+          const horizontalDiff = diff.X / SLIDER.container.offsetWidth * 100;
           // Calculate changed position
           currPos = startPos + horizontalDiff;
 
-          if (!o.rewind) {
+          if (!OPTIONS.rewind) {
             flip(currPos, direction === 'left' ? 1 : -1);
           } else if (!currentSlide && direction === 'right' || u.isLastSlide(currentSlide) && direction === 'left') {
             // Resist dragging if it's first slide
             // or last and if rewind is true
             currPos = startPos + (diff.X / 2.5);
           }
-          translate(slider.container, currPos);
+          translate(SLIDER.container, currPos);
         }
       },
       end: (event, direction, diff) => {
         let targetSlide = slideIndex;
 
         // Only set new target slide if drag exceeds minimum drag distance
-        if (Math.abs(diff.X) > o.minimumDragDistance) {
+        if (Math.abs(diff.X) > OPTIONS.minimumDragDistance) {
           if (direction === 'left') {
-            targetSlide = o.rewind && u.isLastSlide(currentSlide) ? u.lastSlide : u.getNextSlideNr(1);
+            targetSlide = OPTIONS.rewind && u.isLastSlide(currentSlide) ? u.lastSlide : u.getNextSlideNr(1);
           } else if (direction === 'right') {
-            targetSlide = o.rewind && !currentSlide ? 0 : u.getNextSlideNr(-1);
+            targetSlide = OPTIONS.rewind && !currentSlide ? 0 : u.getNextSlideNr(-1);
           }
         }
-        setPosition(targetSlide, false, o.touchSpeed);
+        slideTo(targetSlide, false, OPTIONS.touchSpeed);
         // Remove drag class
-        removeClass(slider.container, classes.dragging);
+        removeClass(SLIDER.container, CLASSES.dragging);
       }
     });
+  }*/
+
+  // Split into two funcs
+  function setItemClickAndEnterEvent() {
+    return (item, index) => {
+      addEvent(dot, 'click', e => slideTo(false, nr));
+      addEvent(dot, 'keyup', e => e.keyCode === 13 && slideTo(false, nr));
+      return item;
+    };
   }
 
 
-  function setup() {
-    slider.container = _this.querySelector(`.${classes.container}`);
-    slider.slides = getItemsAsArray(slider.container.querySelectorAll(`.${classes.slide}`));
+  function setItemFocusEvent(element) {
+    return (item, index) => addEvent(item, 'focus', (e) => {
+      stopSlideshow();
+      element.scrollLeft = 0;
+      slideTo(false, index);
+    }, true);
+  }
 
 
-    nrOfSlides = slider.slides.length;
-    prefixedTransform = getSupportedProperty('transform');
+  function setupSlider(element, startIndex) {
+    // Setup slide variables
+    const container = getElementChildren(element, `.${CLASSES.container}`);
+    const slides = getItemsAsArray(getElementChildren(container, `.${CLASSES.slide}`, true));
+    const dotContainer = OPTIONS.dotContainer || getElementChildren(element, `.${CLASSES.dotContainer}`);
+    const dots = getItemsAsArray(getElementChildren(dotContainer, `.${CLASSES.dotItem}`, true));
+    const currentSlideIndex = startIndex;
+    const lastSlideIndex = slides.length - 1;
+    const isLastSlide = isLastItemIndex(lastSlideIndex);
+    const slideData = setSlideData(container, slides, lastSlideIndex);
+    const currentDistance = slideData[currentSlideIndex].distanceToThis;
+    const transform = getSupportedProperty('transform');
+    const setSlideFocusEvent = setItemFocusEvent(element);
+    const eventListeners = slides.map(setSlideFocusEvent);
 
-    if (nrOfSlides < 2) return;
+    // Bail if only one slide OR if transform is not supported
+    if (!lastSlideIndex || !transform) return;
 
-    // Make utilities
-    u = makeUtilities();
-
-    slider.slides.forEach((slide, number) => {
-      // Set focus event for slide
-      addEvent(slide, 'focus', (e) => {
-        stopSlideshow();
-        _this.scrollLeft = 0;
-        setPosition(false, number);
-      }, true);
+    // Merge variables into SLIDER
+    mergeObjects(SLIDER, {
+      container,
+      slides,
+      dotContainer,
+      dots,
+      slideData,
+      transform,
+      currentSlideIndex,
+      lastSlideIndex,
+      isLastSlide,
+      currentDistance,
+      eventListeners
     });
 
-    if (o.dots) {
-      const dotFrag = document.createDocumentFragment();
+    // Set position and active dot
+    translate(SLIDER.container, SLIDER.currentDistance);
+    setActiveDot(SLIDER.currentSlideIndex);
 
-      slider.slides.forEach((slide, number) => {
-        const newDot = document.createElement('li');
-
-        ((dot, nr) => {
-          addClass(dot, classes.dotItem);
-          dot.setAttribute('tabindex', 0);
-          dot.setAttribute('role', 'button');
-          dot.innerHTML = '<span></span>';
-          addEvent(dot, 'click', e => setPosition(false, nr));
-          addEvent(dot, 'keyup', e => e.keyCode === 13 && setPosition(false, nr));
-          dotFrag.appendChild(dot);
-        })(newDot, number);
-
-        // Cache dots
-        slider.dots.push(newDot);
-
-        // Add dots to slider or given dotContainer element
-        if (u.isLastSlide(number)) {
-          slider.dotWrap = o.dotContainer || document.createElement('ul');
-          slider.dotWrap.appendChild(dotFrag);
-
-          // Only add classname to dot container and
-          // append it to slider if it's generated
-          if (!o.dotContainer) {
-            addClass(slider.dotWrap, classes.dotWrap);
-            _this.appendChild(slider.dotWrap);
-          }
-        }
-      });
+    // Conditional actions
+    if (!OPTIONS.rewind) {
+      if (SLIDER.isLastSlide(SLIDER.currentSlideIndex)) translate(SLIDER.slides[0], SLIDER.slideData[0].distanceToFlip);
+      if (!SLIDER.currentSlideIndex) translate(SLIDER.slides[SLIDER.lastSlideIndex], SLIDER.slideData[SLIDER.lastSlideIndex].distanceToFlip * -1);
     }
 
-
-    // Listen for window resize events
-    //addEvent(window, 'resize', onWidthChange);
-    //addEvent(window, 'orientationchange', onWidthChange);
-
-    // Listen for touch events
-    //touchInit();
-    setupSlider();
-
-    if (o.mouseDrag) addClass(slider.container, classes.mouseDrag);
-    if (o.slideShow) startSlideshow();
+    if (OPTIONS.mouseDrag) addClass(SLIDER.container, CLASSES.mouseDrag);
+    if (OPTIONS.slideShow) startSlideshow();
 
     // API Callback after setup, expose API first with timeout
-    if (o.onSetup) setTimeout(() => o.onSetup(nrOfSlides), 0);
+    if (OPTIONS.onSetup) setTimeout(() => OPTIONS.onSetup(SLIDER.lastSlideIndex + 1), 0);
   }
 
 
   // Init
-  setup();
+  setupSlider(_this, OPTIONS.startSlide);
 
 
   // Expose slider API
   return {
-    next,
-    prev,
+    next: () => slideTo(1),
+    prev: () => slideTo(-1),
     stop: stopSlideshow,
     start: startSlideshow,
-    setupSlider: (slideNr) => setupSlider(slideNr),
-    moveTo: (slideNr, speed) => setPosition(slideNr, true, speed)
+    //setupSlider: (slideNr) => setupSlider(slideNr),
+    //moveTo: (slideNr, speed) => slideTo(slideNr, true, speed)
   };
 }
