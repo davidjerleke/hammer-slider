@@ -96,6 +96,11 @@ function HammerSlider(_this, options) {
   }
 
 
+  function getPercentageOfTotal(fraction, total) {
+    return fraction / total * 100;
+  }
+
+
   function getItemsAsArray(nodeList) {
     const returnArray = [];
     if (nodeList) forEachItem(nodeList, (item) => { returnArray.push(item) });
@@ -108,7 +113,7 @@ function HammerSlider(_this, options) {
     const div = document.createElement('div');
 
     return forEachItem(prefixes, (prefix) => {
-      const formattedProperty = `${prefix ? `-${prefix}-` : ''}${property}`;
+      const formattedProperty = `${(prefix ? `-${prefix}-`: '')}${property}`;
       if (typeof div.style[formattedProperty] !== 'undefined') return formattedProperty;
     });
   }
@@ -117,7 +122,8 @@ function HammerSlider(_this, options) {
   function getCurrentTranslate(element) {
     const transform = window.getComputedStyle(element, null).getPropertyValue(SLIDER.transform);
     const transformType = transform.match('matrix3d') ? 12 : 4;
-    return parseFloat(transform.split(',')[transformType]) / element.offsetWidth * 100;
+    const transformValue = parseFloat(transform.split(',')[transformType]);
+    return getPercentageOfTotal(transformValue, element.offsetWidth);
   }
 
 
@@ -131,7 +137,7 @@ function HammerSlider(_this, options) {
 
   function setItemWidth(containerWidth) {
     return (item, index) => {
-      const width = Math.round(((item.element.offsetWidth / containerWidth) * 100));
+      const width = Math.round(getPercentageOfTotal(item.element.offsetWidth, containerWidth));
       return mergeObjects(item, { width });
     };
   }
@@ -143,7 +149,7 @@ function HammerSlider(_this, options) {
       center: (width) => (100 - width) / 2,
       right: (width) => 100 - width
     };
-    return alignment ? align[alignment] : align['center'];
+    return align[alignment || 'center'];
   }
 
 
@@ -170,7 +176,7 @@ function HammerSlider(_this, options) {
   function setItemDistanceToFlip(itemArray) {
     return (item) => {
       const distanceToFlip = itemArray.reduce((accumulator, innerItem) =>
-        (accumulator + (innerItem.width / item.width) * 100), 0);
+        accumulator + getPercentageOfTotal(innerItem.width, item.width), 0);
       return mergeObjects(item, { distanceToFlip });
     };
   }
@@ -179,8 +185,7 @@ function HammerSlider(_this, options) {
   function setItemInfinitePosition(index, lastItemIndex, itemData) {
     if (index && index < lastItemIndex) return;
     const direction = index ? 1 : -1;
-    const itemToPositionIndex = index ? 0 : lastItemIndex;
-    const itemToPosition = itemData[itemToPositionIndex];
+    const itemToPosition = itemData[(index ? 0 : lastItemIndex)];
     setTranslate(itemToPosition.element, itemToPosition.distanceToFlip * direction);
   }
 
@@ -263,26 +268,30 @@ function HammerSlider(_this, options) {
 
   function slideTo(direction, jumpTo) {
     /* Clean this mess the HELL up */
-    let currentSlideIndex;
+    stopSlideshow();
+    const currentSlideIndex = direction ? getNextItemIndex(SLIDER.currentSlideIndex, direction) : jumpTo;
+    const slideDirection = direction || (jumpTo - SLIDER.currentSlideIndex > 0 ? 1 : -1);
+
     let currentDistance;
 
-    if (typeof jumpTo === 'undefined') {
-      currentSlideIndex = getNextItemIndex(SLIDER.currentSlideIndex, direction);
-      const index = direction === -1 && (SLIDER.isLastSlide(currentSlideIndex) ? 0 : currentSlideIndex + 1);
-      const distance = SLIDER.slideData[index || currentSlideIndex].distanceToNext;
-      currentDistance = SLIDER.currentDistance - distance * direction;
+    if (direction) {
+      const index = direction === 1 ? currentSlideIndex : getNextItemIndex(currentSlideIndex, 1);
+      currentDistance = SLIDER.currentDistance - SLIDER.slideData[index].distanceToNext * direction;
     } else {
-      direction = jumpTo - SLIDER.currentSlideIndex > 0 ? 1 : -1;
-      currentSlideIndex = jumpTo;
+      /*
+      if ((!SLIDER.currentSlideIndex && SLIDER.isLastSlide(jumpTo)) || (SLIDER.isLastSlide(SLIDER.currentSlideIndex) && !jumpTo)) {
+        slideTo(slideDirection * -1);
+        return;
+      }
+      */
       currentDistance = SLIDER.slideData[jumpTo].distanceToThis;
     }
 
     mergeObjects(SLIDER, { currentSlideIndex, currentDistance });
     if (OPTIONS.beforeSlideChange) OPTIONS.beforeSlideChange(currentSlideIndex);
 
-    stopSlideshow();
     setActiveDot(currentSlideIndex);
-    animate(currentDistance, direction);
+    animate(currentDistance, slideDirection);
   }
 
 
@@ -305,7 +314,7 @@ function HammerSlider(_this, options) {
       }
       // Else
       else {
-        if (flip(currPos, direction)) {
+        if (OPTIONS.infinite && flip(currPos, direction)) {
           SLIDER.currentDistance += SLIDER.contentWidth * direction;
           start += SLIDER.contentWidth * direction;
         }
