@@ -149,15 +149,15 @@ function HammerSlider(_this, options) {
       center: (width) => (100 - width) / 2,
       right: (width) => 100 - width
     };
-    return align[alignment || 'center'];
+    return align[alignment] || align['center'];
   }
 
 
   function setDistanceToItem(alignItem) {
     return (item, index, itemArray) => {
-      const distanceToThis = itemArray.reduce((accumulator, innerItem, innerIndex) => {
+      const distanceToThis = itemArray.reduce((accumulator, {width}, innerIndex) => {
         if (innerIndex > index) return accumulator;
-        return accumulator + (innerIndex === index ? alignItem(innerItem.width) : -innerItem.width);
+        return accumulator + (innerIndex === index ? alignItem(width) : -width);
       }, 0);
       return mergeObjects(item, { distanceToThis });
     };
@@ -173,10 +173,11 @@ function HammerSlider(_this, options) {
   }
 
 
-  function setItemDistanceToFlip(itemArray) {
-    return (item) => {
-      const distanceToFlip = itemArray.reduce((accumulator, innerItem) =>
-        accumulator + getPercentageOfTotal(innerItem.width, item.width), 0);
+  function setItemDistanceToFlip(lastItemIndex) {
+    return (item, index, itemArray) => {
+      if (index && index < lastItemIndex) return item;
+      const distanceToFlip = itemArray.reduce((accumulator, {width}) =>
+        accumulator + getPercentageOfTotal(width, item.width), 0);
       return mergeObjects(item, { distanceToFlip });
     };
   }
@@ -190,28 +191,25 @@ function HammerSlider(_this, options) {
   }
 
 
-  function setSlideData(container, slides, lastSlideIndex) {
+  function setSlideData(container, items, lastItemIndex) {
     // Gather calculations
     const setSlideWidth = setItemWidth(container.offsetWidth);
     const setDistanceToSlide = setDistanceToItem(setItemAlignment(OPTIONS.alignSlides));
-    const setDistanceBetweenSlides = setDistanceBetweenItems(lastSlideIndex);
+    const setDistanceBetweenSlides = setDistanceBetweenItems(lastItemIndex);
+    const setSlideDistanceToFlip = setItemDistanceToFlip(lastItemIndex);
 
     // Copy items & make calculations
-    const slideData = [...slides]
-      .map(slide => ({ element: slide }))
+    const slideData = [...items]
+      .map(element => ({ element }))
       .map(setSlideWidth)
       .map(setDistanceToSlide)
-      .map(setDistanceBetweenSlides);
+      .map(setDistanceBetweenSlides)
+      .map(setSlideDistanceToFlip);
 
     // Infinite sliding specific calculations
     if (OPTIONS.infinite) {
-      const firstSlide = slideData[0];
-      const lastSlide = slideData[lastSlideIndex];
-      const setSlideDistanceToFlip = setItemDistanceToFlip(slideData);
-
-      SLIDER.contentWidth = slideData.reduce((accumulator, slide) => accumulator + slide.width, 0);
-      firstSlide.distanceToNext += SLIDER.contentWidth;
-      [firstSlide, lastSlide].map(setSlideDistanceToFlip);
+      SLIDER.contentWidth = slideData.reduce((accumulator, {width}) => accumulator + width, 0);
+      slideData[0].distanceToNext += SLIDER.contentWidth;
     }
     return slideData;
   }
@@ -491,7 +489,7 @@ function HammerSlider(_this, options) {
 
 
   // Init
-  setupSlider(_this, OPTIONS.startSlide);
+  //setupSlider(_this, OPTIONS.startSlide);
 
 
   // Expose slider API
@@ -500,7 +498,11 @@ function HammerSlider(_this, options) {
     prev: () => slideTo(-1),
     stop: stopSlideshow,
     start: startSlideshow,
-    //setupSlider: (slideNr) => setupSlider(slideNr),
+    init: (startSlideIndex) => {
+      // killSlider();
+      setupSlider(_this, startSlideIndex || OPTIONS.startSlide);
+    }
+    //kill: killSlider,
     //moveTo: (slideNr, speed) => slideTo(slideNr, true, speed)
   };
 }
