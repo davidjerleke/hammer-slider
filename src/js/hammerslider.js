@@ -215,34 +215,59 @@ function HammerSlider(_this, options) {
   }
 
 
+  let counter = 0;
+
+
   function flip(position, direction) {
-    /* Clean this mess the HELL up */
+    const firstSlide = SLIDER.slideData[0];
+    const slideBeforeLast = SLIDER.slideData[SLIDER.lastSlideIndex - 1];
+    const lastSlide = SLIDER.slideData[SLIDER.lastSlideIndex];
+    const align = setItemAlignment(OPTIONS.alignSlides);
+
+    /*
+    Clean up, calculate optimal flippoints and remove magic numbers.
+    */
+
+    // Forward
     if (direction === 1) {
-      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex - 2].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 2].width / 2)) {
-        setTranslate(SLIDER.slides[SLIDER.lastSlideIndex], 0);
+      if (counter === 0 && position < firstSlide.distanceToThis - align(firstSlide.width) + 0.1) {
+        setTranslate(lastSlide.element, 0);
+        counter = 1;
+        return;
       }
 
-      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex - 1].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 1].width / 2)) {
-        setTranslate(SLIDER.slides[0], SLIDER.slideData[0].distanceToFlip);
+      if (counter === 1 && position < slideBeforeLast.distanceToThis - align(slideBeforeLast.width) + 0.1) {
+        setTranslate(firstSlide.element, firstSlide.distanceToFlip);
+        counter = 2;
+        return;
       }
 
-      if (position < (SLIDER.slideData[SLIDER.lastSlideIndex].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex].width / 2)) {
-        setTranslate(SLIDER.slides[0], 0);
-        setTranslate(SLIDER.slides[SLIDER.lastSlideIndex], SLIDER.slideData[SLIDER.lastSlideIndex].distanceToFlip * -1);
+      if (counter === 2 && position < lastSlide.distanceToThis - align(lastSlide.width) + 0.1) {
+        setTranslate(firstSlide.element, 0);
+        setTranslate(lastSlide.element, lastSlide.distanceToFlip * -1);
+        counter = 0;
         return true;
       }
-    } else {
-      if (position > (SLIDER.slideData[SLIDER.lastSlideIndex - 2].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 2].width / 2)) {
-        setTranslate(SLIDER.slides[SLIDER.lastSlideIndex], SLIDER.slideData[SLIDER.lastSlideIndex].distanceToFlip * -1);
+
+    }
+    // Backward
+    else {
+      if (counter === 1 && position > firstSlide.distanceToThis - align(firstSlide.width) - 8) {
+        setTranslate(lastSlide.element, lastSlide.distanceToFlip * -1);
+        counter = 0;
+        return;
       }
 
-      if (position > (SLIDER.slideData[SLIDER.lastSlideIndex - 1].distanceToThis - SLIDER.slideData[SLIDER.lastSlideIndex - 1].width / 2)) {
-        setTranslate(SLIDER.slides[0], 0);
+      if (counter === 2 && position > slideBeforeLast.distanceToThis - align(slideBeforeLast.width) - 8) {
+        setTranslate(firstSlide.element, 0);
+        counter = 1;
+        return;
       }
 
-      if (position > SLIDER.slideData[0].distanceToThis + SLIDER.slideData[0].width / 2) {
-        setTranslate(SLIDER.slides[0], SLIDER.slideData[0].distanceToFlip);
-        setTranslate(SLIDER.slides[SLIDER.lastSlideIndex], 0);
+      if (counter === 0 && position > lastSlide.distanceToThis - align(lastSlide.width) - 8 + SLIDER.contentWidth) {
+        setTranslate(firstSlide.element, firstSlide.distanceToFlip);
+        setTranslate(lastSlide.element, 0);
+        counter = 2;
         return true;
       }
     }
@@ -268,8 +293,6 @@ function HammerSlider(_this, options) {
     /* Clean this mess the HELL up */
     stopSlideshow();
     const currentSlideIndex = direction ? getNextItemIndex(SLIDER.currentSlideIndex, direction) : jumpTo;
-    const slideDirection = direction || (jumpTo - SLIDER.currentSlideIndex > 0 ? 1 : -1);
-
     let currentDistance;
 
     if (direction) {
@@ -289,11 +312,11 @@ function HammerSlider(_this, options) {
     if (OPTIONS.beforeSlideChange) OPTIONS.beforeSlideChange(currentSlideIndex);
 
     setActiveDot(currentSlideIndex);
-    animate(currentDistance, slideDirection);
+    animate(currentDistance);
   }
 
 
-  function animate(slideDistance, direction) {
+  function animate(slideDistance) {
     /* Clean this mess the HELL up */
     const translate = setTranslate(SLIDER.container, false, true);
     const slideSpeed = OPTIONS.slideSpeed;
@@ -303,6 +326,8 @@ function HammerSlider(_this, options) {
     let currentTime = 0;
     let start = currPos;
     let change = slideDistance - start;
+
+    const direction = slideDistance < currPos ? 1 : -1;
 
     function render() {
       // Sliding ended
