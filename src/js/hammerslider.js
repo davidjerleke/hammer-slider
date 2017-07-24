@@ -145,9 +145,9 @@ function HammerSlider(_this, options) {
 
   function setItemAlignment(alignment) {
     const align = {
-      left: (width) => 0,
-      center: (width) => (100 - width) / 2,
-      right: (width) => 100 - width
+      left: () => 0,
+      center: width => (100 - width) / 2,
+      right: width => 100 - width
     };
     return align[alignment] || align['center'];
   }
@@ -183,19 +183,10 @@ function HammerSlider(_this, options) {
 
   function setItemDistanceToFlip(lastItemIndex) {
     return (item, index, itemArray) => {
-      //if (index && index < lastItemIndex) return item;
       const distanceToFlip = itemArray.reduce((accumulator, {width}) =>
         accumulator + getPercentageOfTotal(width, item.width), 0);
       return mergeObjects(item, { distanceToFlip });
     };
-  }
-
-
-  function setItemInfinitePosition(index, lastItemIndex, itemData) {
-    if (index && index < lastItemIndex) return;
-    const direction = index ? 1 : -1;
-    const itemToPosition = itemData[(index ? 0 : lastItemIndex)];
-    setTranslate(itemToPosition.element, itemToPosition.distanceToFlip * direction);
   }
 
 
@@ -214,7 +205,7 @@ function HammerSlider(_this, options) {
       .map(setDistanceBetweenSlides)
       .map(setSlideDistanceToFlip);
 
-    // Infinite sliding specific calculations
+    // Infinite sliding specific calculations - Move to separate func
     if (OPTIONS.infinite) {
       SLIDER.contentWidth = slideData.reduce((accumulator, {width}) => accumulator + width, 0);
       slideData[0].distanceToNext += SLIDER.contentWidth;
@@ -223,65 +214,158 @@ function HammerSlider(_this, options) {
   }
 
 
-  let counter = 0;
+  /* HUGE REFACTOR BELOW */
+  function setForwardFlips() {
+    const slideData = SLIDER.slideData;
+    const firstSlide = slideData[0];
+    const flipData = {};
+
+    let backwardAccumulator = 0;
+    const lastFoldWidth = firstSlide.distanceToThis + 1;
+    const itemsBackward = [];
+    let itemIndex = 0;
+
+    flipData.itemsBackward = forEachItem(SLIDER.slides, () => {
+      if (backwardAccumulator >= lastFoldWidth) return itemsBackward;
+      itemIndex = getNextItemIndex(itemIndex, -1);
+      itemsBackward.push(itemIndex);
+      backwardAccumulator += slideData[itemIndex].width;
+    });
+
+
+    const itemBoundIndex = flipData.itemsBackward[flipData.itemsBackward.length - 2] || 0;
+    const itemToFlipIndex = getNextItemIndex(itemBoundIndex, -1);
+
+
+    slideData.forEach((item, index) => {
+      const position = index > SLIDER.lastSlideIndex - flipData.itemsBackward.length ?
+        item.distanceToFlip * -1 : 0;
+      setTranslate(item.element, position);
+      mergeObjects(item, { position });
+    });
+
+    SLIDER.flipData = flipData;
+    SLIDER.flipData[1] = {
+      itemBoundIndex,
+      itemToFlipIndex
+    };
+    SLIDER.flipData.resetForward = {
+      itemBoundIndex,
+      itemToFlipIndex
+    };
+  }
+
+
+  function setBackwardFlips() {
+    const slideData = SLIDER.slideData;
+    const firstSlide = slideData[0];
+    const lastSlide = slideData[SLIDER.lastSlideIndex];
+    const flipData = {};
+
+
+    let forwardAccumulator = 0;
+    const firstFoldWidth = 100 - firstSlide.alignDistance;
+    const itemsForward = [0]; // Remove 0 from here and add it later: SLIDER.flipData.itemsForward.concat(SLIDER.flipData.itemsBackward)
+    let itemIndex = 0;
+
+    flipData.itemsForward = forEachItem(SLIDER.slides, () => {
+      if (forwardAccumulator >= firstFoldWidth) return itemsForward;
+      itemIndex = getNextItemIndex(itemIndex, 1);
+      itemsForward.push(itemIndex);
+      forwardAccumulator += slideData[itemIndex].width;
+    });
+
+    console.log(flipData.itemsForward)
+    SLIDER.flipData.itemsForward = flipData.itemsForward;
+    /*
+    const currentIndex = flipData.itemsForward[flipData.itemsForward.length - 1] || 0;
+    const basePosition = slideData[currentIndex].distanceToThis - slideData[currentIndex].alignDistance + (100 - slideData[currentIndex].width + 1);
+    */
+  }
 
 
   function flip(position, direction) {
-    /* CLEAN this up !!!! */
-    const firstSlide = SLIDER.slideData[0];
-    const slideBeforeLast = SLIDER.slideData[SLIDER.lastSlideIndex - 1];
-    const lastSlide = SLIDER.slideData[SLIDER.lastSlideIndex];
+    const slideData = SLIDER.slideData;
+    const firstSlide = slideData[0];
 
     // Forward
     if (direction === 1) {
-      const currentSlide = SLIDER.slideData[counter];
+      const currentFlip = SLIDER.flipData[direction];
+      const boundItem = slideData[currentFlip.itemBoundIndex];
+      const flipItem = slideData[currentFlip.itemToFlipIndex];
 
-      if (position < currentSlide.distanceToThis - currentSlide.alignDistance + 0.001) {
-        if (counter === 0) {
-          setTranslate(lastSlide.element, 0);
-          counter += 1;
-          return;
-        }
-
-        if ((counter > 0 && counter < SLIDER.lastSlideIndex)) {
-          const slideBefore = SLIDER.slideData[counter - 1];
-          setTranslate(slideBefore.element, slideBefore.distanceToFlip);
-          counter += 1;
-          return;
-        }
-
-        if (counter === SLIDER.lastSlideIndex) {
-          for (let i = 0; i < SLIDER.lastSlideIndex; i += 1) {
-            setTranslate(SLIDER.slideData[i].element, 0);
-          }
-          setTranslate(lastSlide.element, lastSlide.distanceToFlip * -1);
-          counter = 0;
-          return true;
-        }
-      }
-
-    }
-    // Backward
-    else {
-      if (counter === 1 && position > slideBeforeLast.distanceToThis - slideBeforeLast.alignDistance + (100 - slideBeforeLast.width - 0.0001)) {
-        setTranslate(lastSlide.element, lastSlide.distanceToFlip * -1);
-        counter = 0;
-        return;
-      }
-      if (counter === 2 && position > lastSlide.distanceToThis - lastSlide.alignDistance + (100 - lastSlide.width - 0.0001)) {
-        setTranslate(firstSlide.element, 0);
-        counter = 1;
-        return;
-      }
-
-      if (counter === 0 && position > firstSlide.distanceToThis - firstSlide.alignDistance + (100 - firstSlide.width - 0.0001)) {
-        setTranslate(firstSlide.element, firstSlide.distanceToFlip);
-        setTranslate(lastSlide.element, 0);
-        counter = 2;
+      if (position < -SLIDER.contentWidth + firstSlide.alignDistance + 1) {
+        mergeObjects(currentFlip, SLIDER.flipData.resetForward);
+        slideData.forEach((item, index) => {
+          const position = index > SLIDER.lastSlideIndex - SLIDER.flipData.itemsBackward.length ?
+            item.distanceToFlip * -1 : 0;
+          setTranslate(item.element, position);
+          mergeObjects(item, { position });
+        });
         return true;
       }
+
+      const bound = (() => {
+        const boundItemArray = SLIDER.flipData.itemsForward.concat(SLIDER.flipData.itemsBackward);
+        if (boundItemArray.indexOf(currentFlip.itemToFlipIndex) < 0) return;
+
+        const itemBound = boundItem.distanceToThis - boundItem.alignDistance - 1;
+        let distance = itemBound;
+
+        if (boundItem.position === boundItem.distanceToFlip * -1) {
+          distance += SLIDER.contentWidth;
+        } else if (boundItem.position === boundItem.distanceToFlip) {
+          distance -= SLIDER.contentWidth;
+        }
+
+        return distance;
+      })();
+
+      if (!bound) return;
+
+      if (position < bound) {
+        const itemPosition = flipItem.position + flipItem.distanceToFlip;
+        mergeObjects(flipItem, { position: itemPosition });
+        mergeObjects(currentFlip, {
+          itemBoundIndex: getNextItemIndex(currentFlip.itemBoundIndex, direction),
+          itemToFlipIndex: getNextItemIndex(currentFlip.itemToFlipIndex, direction)
+        });
+        setTranslate(flipItem.element, itemPosition);
+      }
+
+
+    } else {
+      const currentFlip = SLIDER.flipData[direction];
+
+      if (position > firstSlide.alignDistance - 1) {
+      }
     }
+
+    /*
+    else {
+      const currentSlide = SLIDER.slideData[counter];
+      console.log(backwardCounter)
+
+      if (backwardCounter === 1 && position > slideBeforeLast.distanceToThis - slideBeforeLast.alignDistance + (100 - slideBeforeLast.width - 0.0001)) {
+        setTranslate(lastSlide.element, lastSlide.distanceToFlip * -1);
+        backwardCounter -= 1;
+        return;
+      }
+      if (backwardCounter > 1 && position > currentSlide.distanceToThis - currentSlide.alignDistance + (100 - currentSlide.width - 0.0001)) {
+        setTranslate(currentSlide.element, 0);
+        backwardCounter -= 1;
+        return;
+      }
+
+      if (backwardCounter === 0 && position > firstSlide.distanceToThis - firstSlide.alignDistance + (100 - firstSlide.width - 0.0001)) {
+        setTranslate(firstSlide.element, firstSlide.distanceToFlip);
+        setTranslate(lastSlide.element, 0);
+        backwardCounter = SLIDER.lastSlideIndex;
+        return true;
+      }
+    }*/
   }
+  /* HUGE REFACTOR ABOVE */
 
 
   function isLastItemIndex(lastIndex) {
@@ -327,7 +411,7 @@ function HammerSlider(_this, options) {
 
 
   function animate(slideDistance) {
-    /* Clean this mess the HELL up */
+    /* Clean this mess up */
     const translate = setTranslate(SLIDER.container, false, true);
     const slideSpeed = OPTIONS.slideSpeed;
     const increment = 20;
@@ -514,10 +598,14 @@ function HammerSlider(_this, options) {
     setActiveDot(currentSlideIndex);
 
     // Conditional actions
-    if (OPTIONS.infinite) setItemInfinitePosition(currentSlideIndex, lastSlideIndex, slideData);
+    //if (OPTIONS.infinite) setItemInfinitePosition(currentSlideIndex, lastSlideIndex, slideData);
 
     if (OPTIONS.mouseDrag) addClass(container, CLASSES.mouseDrag);
     if (OPTIONS.slideShow) startSlideshow();
+
+    // REMOVE
+    setForwardFlips();
+    setBackwardFlips();
 
     if (OPTIONS.onSetup) setTimeout(() => OPTIONS.onSetup(SLIDER), 0);
   }
