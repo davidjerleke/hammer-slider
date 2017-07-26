@@ -78,12 +78,12 @@ function HammerSlider(_this, options) {
 
 
   function addClass(element, className) {
-    element && element.classList.add(className);
+    if (element) element.classList.add(className);
   }
 
 
   function removeClass(element, className) {
-    element && element.classList.remove(className);
+    if (element) element.classList.remove(className);
   }
 
 
@@ -119,7 +119,7 @@ function HammerSlider(_this, options) {
   }
 
 
-  function getCurrentTranslate(element) {
+  function getTranslate(element) {
     const transform = window.getComputedStyle(element, null).getPropertyValue(SLIDER.transform);
     const transformType = transform.match('matrix3d') ? 12 : 4;
     const transformValue = parseFloat(transform.split(',')[transformType]);
@@ -229,7 +229,22 @@ function HammerSlider(_this, options) {
     const leftGapWidth = gapToFirstSlide + 1;
     const rightGapWidth = 100 - leftGapWidth + 2;
     const itemsToLeft = getItemsInFraction(leftGapWidth, -1, 0);
-    const itemsToRight = getItemsInFraction(rightGapWidth, 1, SLIDER.lastSlideIndex);
+    const itemsToRight = getItemsInFraction(rightGapWidth + 20, 1, SLIDER.lastSlideIndex);
+
+    const checks = [
+      () => OPTIONS.alignSlides === 'center',
+      () => SLIDER.slideData[SLIDER.lastSlideIndex].width < 55,
+      () => leftGapWidth < SLIDER.slideData[SLIDER.lastSlideIndex].width,
+      () => SLIDER.lastSlideIndex > 2
+    ];
+
+
+    const didNotPassChecks = forEachItem(checks, check => !check() && 1);
+    /*
+      if (didNotPassChecks) {
+        rightGapWidth + 20
+      }
+    */
 
     return {
       items: itemsToLeft.concat(itemsToRight),
@@ -252,54 +267,64 @@ function HammerSlider(_this, options) {
   }
 
 
-  function getItemPosition(item, direction, isItemToRight) {
-    const position = {
-      '1': isItemToRight ? 0 : item.distanceToFlip * -1,
-      '-1': isItemToRight ? item.distanceToFlip : 0
-    };
-    return position[direction];
-  }
-
-
   function positionItemsInView(direction) {
     let isItemToRight = false;
+    const getSlidePosition = getItemPosition()[direction];
 
     SLIDER.flipData.items.forEach((itemIndex) => {
       if (!itemIndex) isItemToRight = true;
       const item = SLIDER.slideData[itemIndex];
-      setItemPosition(item, getItemPosition(item, direction, isItemToRight));
+      setItemPosition(item, getSlidePosition(item, isItemToRight));
     });
   }
 
 
   function getInitialFlipIndex(items, direction) {
-    const itemBoundIndex = items[items.length - 2] || 0;
-    const itemToFlipIndex = getNextItemIndex(itemBoundIndex, direction);
-    return { itemBoundIndex, itemToFlipIndex };
+    const intersectIndex = items[items.length - 2] || 0;
+    const flipIndex = getNextItemIndex(intersectIndex, direction);
+    return { intersectIndex, flipIndex };
+  }
+
+
+  function getItemPosition() {
+    return {
+      '1': (item, isItemToRight) => isItemToRight ? 0 : item.distanceToFlip * -1,
+      '-1': (item, isItemToRight) => isItemToRight ? item.distanceToFlip : 0
+    };
   }
 
 
   function resetFlipIndex(flipData) {
-    mergeObjects(flipData, {
+    return {
       '1': getInitialFlipIndex(flipData.itemsToLeft, -1),
       '-1': getInitialFlipIndex(flipData.itemsToRight, 1)
-    });
+    };
   }
 
 
-  function getResetPoints(contentWidth, firstSlide) {
+  function getSlidableDistance(contentWidth, distance) {
     return {
-      '1': -contentWidth + firstSlide.alignDistance + 1,
-      '-1': firstSlide.alignDistance - 1
+      '1': -contentWidth + distance + 1,
+      '-1': distance - 1
+    };
+  }
+
+
+  function hasReachedDistance(position) {
+    return {
+      '1': distance => position < distance,
+      '-1': distance => position > distance
     };
   }
 
 
   function setFlipData() {
     const flipData = getItemsInView();
-    const resetPoint = getResetPoints(SLIDER.contentWidth, SLIDER.slideData[0]);
+    const slideableDistance = getSlidableDistance(SLIDER.contentWidth, SLIDER.slideData[0].alignDistance);
     mergeObjects(flipData, resetFlipIndex(flipData));
-    mergeObjects(flipData, { resetPoint });
+    mergeObjects(flipData, {
+      slideableDistance
+    });
 
     SLIDER.flipData = flipData;
     positionItemsInView(1);
@@ -312,10 +337,11 @@ function HammerSlider(_this, options) {
       '-1': item => item.distanceToThis - item.alignDistance + (100 - item.width + 1)
     };
     return (flipIndex, intersectItem) => {
-      //if (itemArray.indexOf(flipIndex) < 0) return;
+      if (itemArray.indexOf(flipIndex) < 0) return;
       const intersectPoint = intersect[direction](intersectItem);
-      if (!intersectItem.position) return intersectPoint;
-      return intersectPoint + SLIDER.contentWidth * (intersectItem.position < 0 ? 1 : -1);
+      const position = intersectItem.position;
+      return !position ? intersectPoint :
+        intersectPoint + SLIDER.contentWidth * (position < 0 ? 1 : -1);
     };
   }
 
@@ -326,83 +352,33 @@ function HammerSlider(_this, options) {
     const flipData = SLIDER.flipData;
     const currentFlip = flipData[direction];
     const oppositeFlip = flipData[direction * -1];
-    const firstSlide = slideData[0];
-    const intersectItem = slideData[currentFlip.itemBoundIndex];
-    const flipItem = slideData[currentFlip.itemToFlipIndex];
+    const slideableDistance = flipData.slideableDistance[direction];
+    const hasReachedPoint = hasReachedDistance(position)[direction];
     const intersect = getIntersectPoint(flipData.items, direction);
-    const resetPoint = flipData.resetPoint[direction];
+    const intersectPoint = intersect(currentFlip.flipIndex, slideData[currentFlip.intersectIndex]);
 
-    // Forward
-    if (direction === 1) {
-
-      if (position < resetPoint) {
-        resetFlipIndex(flipData);
-        positionItemsInView(direction);
-        return true;
-      }
-
-      const intersectPoint = intersect(currentFlip.itemToFlipIndex, intersectItem);
-      if (!intersectPoint) return;
-
-      if (position < intersectPoint) {
-        const itemPosition = flipItem.position + flipItem.distanceToFlip;
-        setItemPosition(flipItem, itemPosition);
-
-        /*
-        SPECIAL CASE - itemsToLeft.length === 1 && itemsToRight.length === 2
-        mergeObjects(oppositeFlip, {
-          itemBoundIndex: getNextItemIndex(getNextItemIndex(currentFlip.itemBoundIndex, direction), direction),
-          itemToFlipIndex: currentFlip.itemToFlipIndex
-        });
-        */
-
-        mergeObjects(oppositeFlip, {
-          itemBoundIndex: getNextItemIndex(oppositeFlip.itemBoundIndex, direction),
-          itemToFlipIndex: currentFlip.itemToFlipIndex
-        });
-
-        mergeObjects(currentFlip, {
-          itemBoundIndex: getNextItemIndex(currentFlip.itemBoundIndex, direction),
-          itemToFlipIndex: getNextItemIndex(currentFlip.itemToFlipIndex, direction)
-        });
-      }
-
-    // Backward
-    } else {
-
-      if (position > resetPoint) {
-        resetFlipIndex(flipData);
-        positionItemsInView(direction);
-        return true;
-      }
-
-      const intersectPoint = intersect(currentFlip.itemToFlipIndex, intersectItem);
-      if (!intersectPoint) return;
-
-      if (position > intersectPoint) {
-        const itemPosition = flipItem.position - flipItem.distanceToFlip;
-        setItemPosition(flipItem, itemPosition);
-
-        /*
-        SPECIAL CASE - itemsToLeft.length === 1 && itemsToRight.length === 2
-        mergeObjects(oppositeFlip, {
-          itemBoundIndex: getNextItemIndex(getNextItemIndex(currentFlip.itemBoundIndex, direction), direction),
-          itemToFlipIndex: currentFlip.itemToFlipIndex
-        });
-        */
-
-        mergeObjects(oppositeFlip, {
-          itemBoundIndex: getNextItemIndex(oppositeFlip.itemBoundIndex, direction),
-          itemToFlipIndex: currentFlip.itemToFlipIndex
-        });
-
-        mergeObjects(currentFlip, {
-          itemBoundIndex: getNextItemIndex(currentFlip.itemBoundIndex, direction),
-          itemToFlipIndex: getNextItemIndex(currentFlip.itemToFlipIndex, direction)
-        });
-      }
+    if (hasReachedPoint(slideableDistance)) {
+      mergeObjects(flipData, resetFlipIndex(flipData));
+      positionItemsInView(direction);
+      return true;
     }
 
+    if (intersectPoint && hasReachedPoint(intersectPoint)) {
+      const flipItem = slideData[currentFlip.flipIndex];
+      const itemPosition = flipItem.position + (flipItem.distanceToFlip * direction);
+      setItemPosition(flipItem, itemPosition);
+
+      mergeObjects(oppositeFlip, {
+        intersectIndex: getNextItemIndex(oppositeFlip.intersectIndex, direction),
+        flipIndex: currentFlip.flipIndex
+      });
+
+      mergeObjects(currentFlip, {
+        intersectIndex: getNextItemIndex(currentFlip.intersectIndex, direction),
+        flipIndex: getNextItemIndex(currentFlip.flipIndex, direction)
+      });
+    }
+    return false;
   }
   /* DO HUGE REFACTOR ABOVE */
 
@@ -455,7 +431,7 @@ function HammerSlider(_this, options) {
     const slideSpeed = OPTIONS.slideSpeed;
     const increment = 20;
 
-    let currPos = getCurrentTranslate(SLIDER.container);
+    let currPos = getTranslate(SLIDER.container);
     let currentTime = 0;
     let start = currPos;
     let change = slideDistance - start;
@@ -536,7 +512,7 @@ function HammerSlider(_this, options) {
       // Pass touch state actions
       start: (event) => {
         stopSlideshow();
-        startPos = getCurrentTranslate() / SLIDER.container.offsetWidth * 100;
+        startPos = getTranslate() / SLIDER.container.offsetWidth * 100;
         currentSlide = slideIndex % nrOfSlides;
         // Add drag class
         addClass(SLIDER.container, CLASSES.dragging);
