@@ -16,14 +16,13 @@ function TouchEvents(_this, options) {
   const touchStateCallback = () => {},
     o = {
       preventDefault: true,
-      clicksAllowed: true,
       mouse: true,
       dragThreshold: 10, // Minimum distance to determine swipe direction
       start: touchStateCallback,
       move: touchStateCallback,
       end: touchStateCallback
     };
-        
+
   // Merge user options into defaults
   options && mergeObjects(o, options);
 
@@ -108,7 +107,6 @@ function TouchEvents(_this, options) {
 
   function touchStart(event, type) {
     direction = '';
-    o.clicksAllowed = true;
     eventType = type;
 
     if (checks[eventType](event)) return;
@@ -153,8 +151,6 @@ function TouchEvents(_this, options) {
 
 
   function touchEnd(event) {
-    !o.clicksAllowed && event.target && event.target.blur && event.target.blur();
-
     removeEvent(document, events[eventType][1], touchMove);
     removeEvent(document, events[eventType][2], touchEnd);
     removeEvent(document, events[eventType][3], touchEnd);
@@ -170,11 +166,11 @@ function TouchEvents(_this, options) {
   function init() {
     // Bind touchstart
     addEvent(_this, events[eventModel][0], (event) => {
-      touchStart(event, eventModel); 
+      touchStart(event, eventModel);
     });
     // Prevent stuff from dragging when using mouse
     addEvent(_this, 'dragstart', preventDefault);
-    
+
     // Bind mousedown if necessary
     if (o.mouse && !eventModel) {
       addEvent(_this, events[3][0], (event) => {
@@ -184,7 +180,9 @@ function TouchEvents(_this, options) {
 
     // No clicking during touch
     addEvent(_this, 'click', (event) => {
-      o.clicksAllowed ? touchStateCallback(event) : preventDefault(event);
+      if (Math.abs(diff.X) > o.dragThreshold) {
+        event.preventDefault();
+      }
     });
   }
 

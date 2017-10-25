@@ -128,8 +128,8 @@ function HammerSlider(_this, options) {
 
     if (!o.rewind) {
       // Flip points will be the breakpoints for slide flipping used to make
-      // an infinite carousel effect. Flip points will always be set halfway 
-      // through a slide transition to get rid of flicking when slide speed is 
+      // an infinite carousel effect. Flip points will always be set halfway
+      // through a slide transition to get rid of flicking when slide speed is
       // not fast enough to hide it. 1 is forward and -1 is backward.
       flipPoints['1'] = {
         slide: !pos ? u.lastSlide : 0,
@@ -189,7 +189,7 @@ function HammerSlider(_this, options) {
       toPos: currFlip.toPos + u.nrSlidesInPercent * opposite
     });
     currFlip.flipPoint += slider.width * opposite;
-    
+
     if (updateFlipSlide(currFlip, direction)) {
       currFlip.toPos += u.nrSlidesInPercent * direction;
     }
@@ -236,7 +236,7 @@ function HammerSlider(_this, options) {
       currIndex = Math.ceil(currPos / slider.width),
       offsetCount = Math.ceil(currIndex / nrOfSlides),
       next = Math.abs(offsetCount * nrOfSlides - slideNr);
-        
+
     return currPos > 0 ? next * -1 : next;
   }
 
@@ -252,7 +252,7 @@ function HammerSlider(_this, options) {
 
 
   function getActiveSlideNr(pos) {
-    // Active slide number can be fetched either in advance by providing 
+    // Active slide number can be fetched either in advance by providing
     // target distance as parameter or based on current actual position.
     const relativeIndex = Math.abs(slideIndex % nrOfSlides),
       activeSlide = ((pos || getCurrentPosition()) < 0) ? relativeIndex : nrOfSlides - relativeIndex;
@@ -385,7 +385,7 @@ function HammerSlider(_this, options) {
             if (!o.rewind) {
               flip(hasReachedFlipPoint(currPos));
             } else if (!currentSlide && direction === 'right' || u.isLastSlide(currentSlide) && direction === 'left') {
-              // Resist dragging if it's first slide 
+              // Resist dragging if it's first slide
               // or last and if rewind is true
               currPos = startPos + (diff.X / 2.5);
             }
@@ -404,7 +404,11 @@ function HammerSlider(_this, options) {
             targetSlide = o.rewind && !currentSlide ? 0 : u.getNextSlideNr(-1);
           }
         }
-        setPosition(targetSlide, false, o.touchSpeed);
+
+        if (currPos) {
+          setPosition(targetSlide, false, o.touchSpeed);
+          currPos = null;
+        }
         // Remove drag class
         removeClass(slider.container, classes.dragging);
       }
@@ -430,7 +434,7 @@ function HammerSlider(_this, options) {
       return;
     }
 
-    // Special case: Add 2 clones if slider only has 2 
+    // Special case: Add 2 clones if slider only has 2
     // slides and the infinite carousel effect is used.
     if (!o.rewind && nrOfSlides === 2) {
       const container = slider.container,
@@ -471,7 +475,7 @@ function HammerSlider(_this, options) {
           addClass(dot, classes.dotItem);
           dot.setAttribute('tabindex', 0);
           dot.setAttribute('role', 'button');
-          
+
           dot.innerHTML = '<span></span>';
 
           // Remove outlines from dots when clicked
@@ -496,8 +500,8 @@ function HammerSlider(_this, options) {
         if (u.isLastSlide(i)) {
           this.dotWrap = o.dotContainer || document.createElement('ul');
           this.dotWrap.appendChild(dotFrag);
-          
-          // Only add classname to dot container and 
+
+          // Only add classname to dot container and
           // append it to slider if it's generated
           if (!o.dotContainer) {
             addClass(this.dotWrap, classes.dotWrap);
