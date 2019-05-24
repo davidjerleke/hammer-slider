@@ -1,3 +1,6 @@
+# DISCONTINUED
+I've decided to discontinue the development of this old library to concentrate my efforts on [Embla Carousel](https://github.com/davidcetinkaya/embla-carousel) instead. It's much better in every way possible so give it a shot!
+
 # HammerSlider touch ![Travis-ci](https://travis-ci.org/davidcetinkaya/hammer-slider.svg?branch=master) [![npm version](https://badge.fury.io/js/hammer-slider.svg)](https://badge.fury.io/js/hammer-slider)
 
 [Check out the demo](https://codepen.io/DavidCetinkaya/full/oYgxgG/)
